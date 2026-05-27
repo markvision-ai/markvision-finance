@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Wallet, Landmark } from "lucide-react";
-import { startOfMonth, subMonths, format } from "date-fns";
+import { TrendingUp, TrendingDown, Wallet, Landmark, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
+import { startOfMonth, endOfMonth, subMonths, addMonths, format, isSameMonth } from "date-fns";
 import { ru } from "date-fns/locale";
 import {
   ResponsiveContainer,
@@ -19,27 +19,32 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/finance/StatCard";
-import { PageHeader } from "@/components/finance/PageHeader";
 import { money } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 
-async function fetchDashboard() {
+async function fetchDashboard(monthStart: Date) {
   const twelveMonthsAgo = subMonths(startOfMonth(new Date()), 11).toISOString();
-  const [{ data: mb }, { data: recentExp }, { data: recentInc }, { data: goals }, { data: debtsSum }] =
+  const fromISO = startOfMonth(monthStart).toISOString();
+  const toISO = endOfMonth(monthStart).toISOString();
+  const [{ data: mb }, { data: monthExp }, { data: monthInc }, { data: goals }, { data: debtsSum }] =
     await Promise.all([
       supabase.from("monthly_balance" as any).select("*").gte("month", twelveMonthsAgo).order("month"),
-      supabase.from("expenses").select("id, amount, description, occurred_at, currency").order("occurred_at", { ascending: false }).limit(5),
-      supabase.from("incomes" as any).select("id, amount, description, received_at, currency").order("received_at", { ascending: false }).limit(5),
+      supabase.from("expenses").select("id, amount, description, occurred_at, currency").gte("occurred_at", fromISO).lte("occurred_at", toISO).order("occurred_at", { ascending: false }),
+      supabase.from("incomes" as any).select("id, amount, description, received_at, currency").gte("received_at", fromISO).lte("received_at", toISO).order("received_at", { ascending: false }),
       supabase.from("goals").select("*").eq("is_archived", false).limit(10),
       supabase.from("debts_summary" as any).select("*").maybeSingle(),
     ]);
   return {
     monthlyBalance: (mb as any[]) ?? [],
-    recentExpenses: (recentExp as any[]) ?? [],
-    recentIncomes: (recentInc as any[]) ?? [],
+    monthExpenses: (monthExp as any[]) ?? [],
+    monthIncomes: (monthInc as any[]) ?? [],
     goals: (goals as any[]) ?? [],
     debtsSummary: (debtsSum as any) ?? null,
   };
@@ -48,62 +53,107 @@ async function fetchDashboard() {
 function Dashboard() {
   const { user } = useAuth();
   const name = user?.email?.split("@")[0] ?? "друг";
-  const { data, isLoading } = useQuery({ queryKey: ["dashboard"], queryFn: fetchDashboard });
+  const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const monthKey = format(month, "yyyy-MM");
+  const { data, isLoading } = useQuery({ queryKey: ["dashboard", monthKey], queryFn: () => fetchDashboard(month) });
 
   const chartData = useMemo(() => {
     return (data?.monthlyBalance ?? []).map((r: any) => ({
       month: format(new Date(r.month), "LLL", { locale: ru }),
+      _date: new Date(r.month),
       Доходы: Number(r.income_total),
       Расходы: Number(r.expense_total),
       Баланс: Number(r.balance),
     }));
   }, [data]);
 
-  const thisMonth = chartData.at(-1);
-  const prevMonth = chartData.at(-2);
-  const balance = thisMonth?.Баланс ?? 0;
-  const prevBalance = prevMonth?.Баланс ?? 0;
-  const delta = prevBalance ? Math.round(((balance - prevBalance) / Math.abs(prevBalance)) * 100) : 0;
+  const expTotal = (data?.monthExpenses ?? []).reduce((s, e: any) => s + Number(e.amount), 0);
+  const incTotal = (data?.monthIncomes ?? []).reduce((s, i: any) => s + Number(i.amount), 0);
+  const balance = incTotal - expTotal;
+  const isThisMonth = isSameMonth(month, new Date());
+  const monthLabel = format(month, "LLLL yyyy", { locale: ru });
 
   return (
     <div>
-      <PageHeader title={`Привет, ${name}`} subtitle="Финансовый снапшот за этот месяц" />
+      <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">Привет, {name}</h1>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Финансовый снапшот за выбранный месяц</p>
+        </div>
+        <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setMonth((m) => startOfMonth(subMonths(m, 1)))}>
+            <ChevronLeft size={16} />
+          </Button>
+          <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-9 min-w-[150px] justify-center px-3 capitalize">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {monthLabel}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={month}
+                onSelect={(d) => { if (d) { setMonth(startOfMonth(d)); setPickerOpen(false); } }}
+                locale={ru}
+                captionLayout="dropdown"
+                defaultMonth={month}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => setMonth((m) => startOfMonth(addMonths(m, 1)))}
+            disabled={isThisMonth}
+          >
+            <ChevronRight size={16} />
+          </Button>
+        </div>
+      </div>
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="grid gap-4 md:grid-cols-3"
+        className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3"
       >
         <StatCard
-          label="Баланс месяца"
+          label="Баланс"
           value={isLoading ? "—" : money(balance)}
           tone={balance >= 0 ? "success" : "danger"}
-          hint={prevMonth ? `vs прошлый: ${delta >= 0 ? "+" : ""}${delta}%` : "нет данных"}
+          hint={isThisMonth ? "текущий месяц" : monthLabel}
           icon={<Wallet size={18} />}
         />
         <StatCard
-          label="Расходы (мес)"
-          value={isLoading ? "—" : money(thisMonth?.Расходы ?? 0)}
+          label="Расходы"
+          value={isLoading ? "—" : money(expTotal)}
           tone="danger"
           icon={<TrendingDown size={18} />}
         />
-        <StatCard
-          label="Доходы (мес)"
-          value={isLoading ? "—" : money(thisMonth?.Доходы ?? 0)}
-          tone="success"
-          icon={<TrendingUp size={18} />}
-        />
+        <div className="col-span-2 md:col-span-1">
+          <StatCard
+            label="Доходы"
+            value={isLoading ? "—" : money(incTotal)}
+            tone="success"
+            icon={<TrendingUp size={18} />}
+          />
+        </div>
       </motion.div>
 
-      <section className="mt-8 rounded-2xl border border-border bg-card/60 p-5">
+      <section className="mt-6 rounded-2xl border border-border bg-card/60 p-4 sm:mt-8 sm:p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">Cashflow · 12 месяцев</h2>
         </div>
-        <div className="h-72 w-full">
+        <div className="h-60 w-full sm:h-72">
           <ResponsiveContainer>
-            <ComposedChart data={chartData} margin={{ left: -20, right: 8, top: 8 }}>
+            <ComposedChart data={chartData} margin={{ left: -16, right: 4, top: 8 }}>
               <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="month" stroke="oklch(0.68 0.02 270)" fontSize={11} />
+              <XAxis dataKey="month" stroke="oklch(0.68 0.02 270)" fontSize={10} />
               <YAxis stroke="oklch(0.68 0.02 270)" fontSize={11} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
               <Tooltip
                 contentStyle={{ background: "oklch(0.19 0.02 270)", border: "1px solid oklch(0.27 0.02 270)", borderRadius: 12 }}
@@ -118,17 +168,17 @@ function Dashboard() {
         </div>
       </section>
 
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <section className="rounded-2xl border border-border bg-card/60 p-5">
+      <div className="mt-6 grid gap-4 sm:mt-8 sm:gap-6 md:grid-cols-2">
+        <section className="rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
           <h2 className="mb-4 text-sm font-medium text-muted-foreground">Активные цели</h2>
           <div className="space-y-3">
             {(data?.goals ?? []).slice(0, 4).map((g: any) => {
               const p = g.target_amount ? Math.min(100, (Number(g.current_amount) / Number(g.target_amount)) * 100) : 0;
               return (
                 <div key={g.id}>
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span className="font-medium">{g.name}</span>
-                    <span className="font-mono text-muted-foreground tabular-nums">
+                  <div className="mb-1 flex justify-between gap-2 text-sm">
+                    <span className="truncate font-medium">{g.name}</span>
+                    <span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums sm:text-sm">
                       {money(g.current_amount, g.currency)} / {money(g.target_amount, g.currency)}
                     </span>
                   </div>
@@ -142,7 +192,7 @@ function Dashboard() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-border bg-card/60 p-5">
+        <section className="rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Landmark size={16} /> Кредиты
           </h2>
@@ -150,15 +200,15 @@ function Dashboard() {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <div className="text-xs text-muted-foreground">Активных</div>
-                <div className="font-mono text-xl tabular-nums">{data.debtsSummary.active_count}</div>
+                <div className="font-mono text-lg tabular-nums sm:text-xl">{data.debtsSummary.active_count}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Остаток</div>
-                <div className="font-mono text-xl tabular-nums">{money(data.debtsSummary.total_remaining)}</div>
+                <div className="font-mono text-base tabular-nums sm:text-xl">{money(data.debtsSummary.total_remaining)}</div>
               </div>
               <div>
                 <div className="text-xs text-muted-foreground">Платёж/мес</div>
-                <div className="font-mono text-xl tabular-nums">{money(data.debtsSummary.total_monthly)}</div>
+                <div className="font-mono text-base tabular-nums sm:text-xl">{money(data.debtsSummary.total_monthly)}</div>
               </div>
             </div>
           ) : (
@@ -167,38 +217,40 @@ function Dashboard() {
         </section>
       </div>
 
-      <section className="mt-8 rounded-2xl border border-border bg-card/60 p-5">
-        <h2 className="mb-4 text-sm font-medium text-muted-foreground">Последние транзакции</h2>
+      <section className="mt-6 rounded-2xl border border-border bg-card/60 p-4 sm:mt-8 sm:p-5">
+        <h2 className="mb-4 text-sm font-medium text-muted-foreground capitalize">
+          Транзакции · {monthLabel}
+        </h2>
         <div className="divide-y divide-border">
           {[
-            ...((data?.recentExpenses ?? []).map((e: any) => ({ ...e, kind: "exp", at: e.occurred_at }))),
-            ...((data?.recentIncomes ?? []).map((i: any) => ({ ...i, kind: "inc", at: i.received_at }))),
+            ...((data?.monthExpenses ?? []).map((e: any) => ({ ...e, kind: "exp", at: e.occurred_at }))),
+            ...((data?.monthIncomes ?? []).map((i: any) => ({ ...i, kind: "inc", at: i.received_at }))),
           ]
             .sort((a, b) => +new Date(b.at) - +new Date(a.at))
-            .slice(0, 6)
+            .slice(0, 8)
             .map((tx: any) => (
-              <div key={tx.kind + tx.id} className="flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
+              <div key={tx.kind + tx.id} className="flex items-center justify-between gap-3 py-3">
+                <div className="flex min-w-0 items-center gap-3">
                   {tx.kind === "exp" ? (
-                    <TrendingDown size={18} className="text-destructive" />
+                    <TrendingDown size={18} className="shrink-0 text-destructive" />
                   ) : (
-                    <TrendingUp size={18} className="text-success" />
+                    <TrendingUp size={18} className="shrink-0 text-success" />
                   )}
-                  <div>
-                    <div className="text-sm">{tx.description ?? (tx.kind === "exp" ? "Расход" : "Доход")}</div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm">{tx.description ?? (tx.kind === "exp" ? "Расход" : "Доход")}</div>
                     <div className="text-xs text-muted-foreground">
                       {format(new Date(tx.at), "d MMM HH:mm", { locale: ru })}
                     </div>
                   </div>
                 </div>
-                <div className={`font-mono tabular-nums ${tx.kind === "exp" ? "text-destructive" : "text-success"}`}>
+                <div className={`shrink-0 font-mono text-sm tabular-nums sm:text-base ${tx.kind === "exp" ? "text-destructive" : "text-success"}`}>
                   {tx.kind === "exp" ? "−" : "+"}
                   {money(tx.amount, tx.currency)}
                 </div>
               </div>
             ))}
-          {!data?.recentExpenses?.length && !data?.recentIncomes?.length && (
-            <p className="py-4 text-sm text-muted-foreground">Транзакций пока нет. Напиши боту в Telegram.</p>
+          {!data?.monthExpenses?.length && !data?.monthIncomes?.length && (
+            <p className="py-4 text-sm text-muted-foreground">За этот месяц транзакций нет.</p>
           )}
         </div>
       </section>
