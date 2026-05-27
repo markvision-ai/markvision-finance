@@ -29,7 +29,7 @@ export function AppLayout() {
       {/* Sidebar (desktop) */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-border bg-sidebar md:flex">
         <div className="px-6 py-6">
-          <div className="text-lg font-semibold tracking-tight">MarkVision<span className="text-primary">.</span></div>
+          <div className="text-lg font-semibold tracking-tight">MarkVision <span className="text-primary">Finance</span></div>
           <div className="text-xs text-muted-foreground">Финансовый ассистент</div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
