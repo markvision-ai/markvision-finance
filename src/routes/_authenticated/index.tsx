@@ -60,7 +60,10 @@ async function fetchMonth(monthStart: Date) {
 
 function Dashboard() {
   const { user } = useAuth();
-  const name = user?.email?.split("@")[0] ?? "друг";
+  const name =
+    (user?.user_metadata as any)?.display_name?.trim() ||
+    user?.email?.split("@")[0] ||
+    "друг";
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [pickerOpen, setPickerOpen] = useState(false);
   const monthKey = format(month, "yyyy-MM");
@@ -105,7 +108,7 @@ function Dashboard() {
       <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl md:text-3xl">Привет, {name}</h1>
-          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Финансовый снапшот за выбранный месяц</p>
+          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">Финансовая статистика за выбранный месяц</p>
         </div>
         <div className="flex items-center gap-1.5 self-start sm:self-auto">
           <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setMonth((m) => startOfMonth(subMonths(m, 1)))}>
