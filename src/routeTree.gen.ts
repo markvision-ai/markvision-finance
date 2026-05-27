@@ -18,7 +18,9 @@ import { Route as AuthenticatedIncomesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDebtsRouteImport } from './routes/_authenticated/debts'
+import { Route as ApiPublicBotStatusQueryRouteImport } from './routes/api/public/bot/status-query'
 import { Route as ApiPublicBotRescheduleTaskRouteImport } from './routes/api/public/bot/reschedule-task'
+import { Route as ApiPublicBotParseRouteImport } from './routes/api/public/bot/parse'
 import { Route as ApiPublicBotIncomeRouteImport } from './routes/api/public/bot/income'
 import { Route as ApiPublicBotGoalContributionRouteImport } from './routes/api/public/bot/goal-contribution'
 import { Route as ApiPublicBotDebtPaymentRouteImport } from './routes/api/public/bot/debt-payment'
@@ -70,12 +72,22 @@ const AuthenticatedDebtsRoute = AuthenticatedDebtsRouteImport.update({
   path: '/debts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicBotStatusQueryRoute = ApiPublicBotStatusQueryRouteImport.update({
+  id: '/api/public/bot/status-query',
+  path: '/api/public/bot/status-query',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBotRescheduleTaskRoute =
   ApiPublicBotRescheduleTaskRouteImport.update({
     id: '/api/public/bot/reschedule-task',
     path: '/api/public/bot/reschedule-task',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicBotParseRoute = ApiPublicBotParseRouteImport.update({
+  id: '/api/public/bot/parse',
+  path: '/api/public/bot/parse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBotIncomeRoute = ApiPublicBotIncomeRouteImport.update({
   id: '/api/public/bot/income',
   path: '/api/public/bot/income',
@@ -123,7 +135,9 @@ export interface FileRoutesByFullPath {
   '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
   '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
   '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
   '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -140,7 +154,9 @@ export interface FileRoutesByTo {
   '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
   '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
   '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
   '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,7 +175,9 @@ export interface FileRoutesById {
   '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
   '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
   '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
   '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,7 +196,9 @@ export interface FileRouteTypes {
     | '/api/public/bot/debt-payment'
     | '/api/public/bot/goal-contribution'
     | '/api/public/bot/income'
+    | '/api/public/bot/parse'
     | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -195,7 +215,9 @@ export interface FileRouteTypes {
     | '/api/public/bot/debt-payment'
     | '/api/public/bot/goal-contribution'
     | '/api/public/bot/income'
+    | '/api/public/bot/parse'
     | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
   id:
     | '__root__'
     | '/_authenticated'
@@ -213,7 +235,9 @@ export interface FileRouteTypes {
     | '/api/public/bot/debt-payment'
     | '/api/public/bot/goal-contribution'
     | '/api/public/bot/income'
+    | '/api/public/bot/parse'
     | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -225,7 +249,9 @@ export interface RootRouteChildren {
   ApiPublicBotDebtPaymentRoute: typeof ApiPublicBotDebtPaymentRoute
   ApiPublicBotGoalContributionRoute: typeof ApiPublicBotGoalContributionRoute
   ApiPublicBotIncomeRoute: typeof ApiPublicBotIncomeRoute
+  ApiPublicBotParseRoute: typeof ApiPublicBotParseRoute
   ApiPublicBotRescheduleTaskRoute: typeof ApiPublicBotRescheduleTaskRoute
+  ApiPublicBotStatusQueryRoute: typeof ApiPublicBotStatusQueryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,11 +319,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDebtsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/bot/status-query': {
+      id: '/api/public/bot/status-query'
+      path: '/api/public/bot/status-query'
+      fullPath: '/api/public/bot/status-query'
+      preLoaderRoute: typeof ApiPublicBotStatusQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bot/reschedule-task': {
       id: '/api/public/bot/reschedule-task'
       path: '/api/public/bot/reschedule-task'
       fullPath: '/api/public/bot/reschedule-task'
       preLoaderRoute: typeof ApiPublicBotRescheduleTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/parse': {
+      id: '/api/public/bot/parse'
+      path: '/api/public/bot/parse'
+      fullPath: '/api/public/bot/parse'
+      preLoaderRoute: typeof ApiPublicBotParseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/bot/income': {
@@ -378,7 +418,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicBotDebtPaymentRoute: ApiPublicBotDebtPaymentRoute,
   ApiPublicBotGoalContributionRoute: ApiPublicBotGoalContributionRoute,
   ApiPublicBotIncomeRoute: ApiPublicBotIncomeRoute,
+  ApiPublicBotParseRoute: ApiPublicBotParseRoute,
   ApiPublicBotRescheduleTaskRoute: ApiPublicBotRescheduleTaskRoute,
+  ApiPublicBotStatusQueryRoute: ApiPublicBotStatusQueryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
