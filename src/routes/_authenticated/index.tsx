@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { StatCard } from "@/components/finance/StatCard";
 import { money } from "@/lib/format";
 import { TodayTasks } from "@/components/finance/TodayTasks";
+import { TodayCalendarEvents } from "@/components/finance/TodayCalendarEvents";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -170,8 +171,9 @@ function Dashboard() {
         </div>
       </motion.div>
 
-      <div className="mt-6 sm:mt-8">
+      <div className="mt-6 grid gap-4 sm:mt-8 lg:grid-cols-2">
         <TodayTasks />
+        <TodayCalendarEvents />
       </div>
 
       <section className="mt-6 rounded-2xl border border-border bg-card/60 p-4 sm:mt-8 sm:p-5">

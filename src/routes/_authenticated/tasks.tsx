@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Check, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/finance/PageHeader";
@@ -15,6 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/finance/DateTimePicker";
+import {
+  syncTaskToCalendar,
+  deleteCalendarEvent,
+  importEventsAsTasks,
+} from "@/lib/google-calendar.functions";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
@@ -22,6 +28,9 @@ function TasksPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const syncFn = useServerFn(syncTaskToCalendar);
+  const deleteEventFn = useServerFn(deleteCalendarEvent);
+  const importFn = useServerFn(importEventsAsTasks);
   const { data: tasks = [] } = useQuery({
     queryKey: ["tasks"],
     queryFn: async () => {
@@ -41,8 +50,15 @@ function TasksPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
   const del = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("tasks").delete().eq("id", id);
+    mutationFn: async (t: any) => {
+      if (t.google_event_id) {
+        try {
+          await deleteEventFn({ data: { eventId: t.google_event_id } });
+        } catch (e) {
+          console.warn("calendar delete failed", e);
+        }
+      }
+      const { error } = await supabase.from("tasks").delete().eq("id", t.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -52,14 +68,21 @@ function TasksPage() {
   });
   const add = useMutation({
     mutationFn: async (vals: { title: string; description: string; starts_at: string | null }) => {
-      const { error } = await supabase.from("tasks").insert({
+      const { data, error } = await supabase.from("tasks").insert({
         user_id: user!.id,
         title: vals.title,
         description: vals.description || null,
         starts_at: vals.starts_at,
         status: "pending",
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (data?.id && vals.starts_at) {
+        try {
+          await syncFn({ data: { taskId: data.id } });
+        } catch (e) {
+          console.warn("calendar sync failed", e);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
@@ -68,6 +91,17 @@ function TasksPage() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+  const importMut = useMutation({
+    mutationFn: () => importFn({ data: { days: 7 } }),
+    onSuccess: (r: any) => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["gcal", "today"] });
+      toast.success(
+        `Импортировано: ${r.imported}${r.skipped ? `, пропущено: ${r.skipped}` : ""}`,
+      );
+    },
+    onError: (e: any) => toast.error(e.message ?? "Не удалось импортировать"),
+  });
 
   return (
     <div>
@@ -75,15 +109,25 @@ function TasksPage() {
         title="Задачи"
         subtitle="Что нужно сделать"
         action={
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus size={16} /> Новая задача</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Новая задача</DialogTitle></DialogHeader>
-              <TaskForm onSubmit={(v) => add.mutate(v)} />
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => importMut.mutate()}
+              disabled={importMut.isPending}
+              title="Импортировать события из Google Calendar"
+            >
+              {importMut.isPending ? "Импорт…" : "Импорт из календаря"}
+            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus size={16} /> Новая задача</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Новая задача</DialogTitle></DialogHeader>
+                <TaskForm onSubmit={(v) => add.mutate(v)} />
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
       {tasks.length === 0 ? (
@@ -102,7 +146,7 @@ function TasksPage() {
                 )}
                 {t.description && <div className="mt-1 text-xs text-muted-foreground">{t.description}</div>}
               </div>
-              <Button size="icon" variant="ghost" onClick={() => del.mutate(t.id)} className="opacity-60 md:opacity-0 md:group-hover:opacity-100" aria-label="Удалить">
+              <Button size="icon" variant="ghost" onClick={() => del.mutate(t)} className="opacity-60 md:opacity-0 md:group-hover:opacity-100" aria-label="Удалить">
                 <Trash2 size={14} />
               </Button>
             </li>
