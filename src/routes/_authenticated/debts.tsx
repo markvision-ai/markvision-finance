@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { money } from "@/lib/format";
 import { MoneyInput } from "@/components/finance/MoneyInput";
 import { useBanks } from "@/hooks/use-banks";
+import { Breakdown } from "@/components/finance/Breakdown";
 
 export const Route = createFileRoute("/_authenticated/debts")({ component: DebtsPage });
 
@@ -91,6 +92,36 @@ function DebtsPage() {
         <StatCard label="Остаток" value={money(remaining)} tone="danger" />
         <StatCard label="Платёж/мес" value={money(monthly)} />
       </div>
+
+      {active.length > 0 && (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Breakdown
+            title="Остаток по банкам"
+            tone="danger"
+            emptyText="Банк не указан"
+            items={Object.values(
+              active.reduce((acc: Record<string, any>, d: any) => {
+                const key = (d.description ?? "Без банка").toString();
+                if (!acc[key]) acc[key] = { key, label: key, amount: 0 };
+                acc[key].amount += Number(d.current_balance);
+                return acc;
+              }, {})
+            )}
+          />
+          <Breakdown
+            title="Платёж/мес по банкам"
+            emptyText="Нет данных"
+            items={Object.values(
+              active.reduce((acc: Record<string, any>, d: any) => {
+                const key = (d.description ?? "Без банка").toString();
+                if (!acc[key]) acc[key] = { key, label: key, amount: 0 };
+                acc[key].amount += Number(d.monthly_payment ?? 0);
+                return acc;
+              }, {})
+            )}
+          />
+        </div>
+      )}
 
       {active.length > 0 && (
         <div className="mt-6 rounded-2xl border border-border bg-card/60 p-4 sm:p-5">
