@@ -73,14 +73,23 @@ export function AppLayout() {
       </aside>
 
       {/* Main */}
-      <main className="pb-20 md:pb-8 md:pl-64">
+      <main
+        className="md:pl-64 md:pb-8"
+        style={{
+          paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))",
+          paddingTop: "env(safe-area-inset-top)",
+        }}
+      >
         <div className="mx-auto max-w-6xl p-4 md:p-8">
           <Outlet />
         </div>
       </main>
 
       {/* Bottom nav (mobile) */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur md:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur md:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
         <div className="grid grid-cols-5">
           {primaryMobile.map(({ to, label, icon: Icon }) => (
             <Link

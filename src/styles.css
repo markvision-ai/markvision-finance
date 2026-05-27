@@ -146,5 +146,19 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+    text-size-adjust: 100%;
+  }
+
+  html, body {
+    overscroll-behavior-y: none;
+  }
+
+  /* Standalone (installed PWA) tweaks */
+  @media (display-mode: standalone) {
+    html, body { user-select: none; -webkit-user-select: none; }
+    input, textarea { user-select: text; -webkit-user-select: text; }
   }
 }
