@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money } from "@/lib/format";
 import { MoneyInput } from "@/components/finance/MoneyInput";
+import { Breakdown } from "@/components/finance/Breakdown";
 
 export const Route = createFileRoute("/_authenticated/incomes")({ component: IncomesPage });
 
@@ -26,7 +27,11 @@ function IncomesPage() {
   const { data: incomes = [] } = useQuery({
     queryKey: ["incomes"],
     queryFn: async () => {
-      const { data } = await supabase.from("incomes" as any).select("*").order("received_at", { ascending: false }).limit(200);
+      const { data } = await supabase
+        .from("incomes" as any)
+        .select("*, income_categories(name, color)")
+        .order("received_at", { ascending: false })
+        .limit(200);
       return (data as any[]) ?? [];
     },
   });
@@ -61,11 +66,42 @@ function IncomesPage() {
           </Dialog>
         }
       />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4">
         <StatCard label="Всего" value={money(total)} tone="success" />
         <StatCard label="Платежей" value={incomes.length} />
-        <StatCard label="Клиентов" value={new Set(incomes.map((i: any) => i.client_name).filter(Boolean)).size} />
       </div>
+
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <Breakdown
+          title="По категориям"
+          tone="success"
+          emptyText="Нет доходов с категорией"
+          items={Object.values(
+            incomes.reduce((acc: Record<string, any>, i: any) => {
+              const key = i.category_id ?? "none";
+              const label = i.income_categories?.name ?? "Без категории";
+              const color = i.income_categories?.color ?? null;
+              if (!acc[key]) acc[key] = { key, label, color, amount: 0 };
+              acc[key].amount += Number(i.amount);
+              return acc;
+            }, {})
+          )}
+        />
+        <Breakdown
+          title="По клиентам"
+          tone="success"
+          emptyText="Клиент не указан"
+          items={Object.values(
+            incomes.reduce((acc: Record<string, any>, i: any) => {
+              const key = (i.client_name ?? "—").toString();
+              if (!acc[key]) acc[key] = { key, label: key, amount: 0 };
+              acc[key].amount += Number(i.amount);
+              return acc;
+            }, {})
+          ).filter((x: any) => x.key !== "—")}
+        />
+      </div>
+
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60">
         {incomes.length === 0 ? (
           <EmptyState title="Доходов пока нет" description="Нажми «Добавить» или напиши боту в Telegram." />

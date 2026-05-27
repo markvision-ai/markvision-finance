@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { money } from "@/lib/format";
 import { MoneyInput } from "@/components/finance/MoneyInput";
+import { Breakdown } from "@/components/finance/Breakdown";
 
 export const Route = createFileRoute("/_authenticated/expenses")({ component: ExpensesPage });
 
@@ -94,10 +95,27 @@ function ExpensesPage() {
           </Dialog>
         }
       />
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-4">
         <StatCard label="Всего" value={money(total)} tone="danger" />
         <StatCard label="Транзакций" value={expenses.length} />
-        <StatCard label="Категорий" value={cats.length} />
+      </div>
+
+      <div className="mt-6">
+        <Breakdown
+          title="По категориям"
+          tone="danger"
+          emptyText="Нет расходов с категорией"
+          items={Object.values(
+            expenses.reduce((acc: Record<string, any>, e: any) => {
+              const key = e.category_id ?? "none";
+              const label = e.expense_categories?.name ?? "Без категории";
+              const color = e.expense_categories?.color ?? null;
+              if (!acc[key]) acc[key] = { key, label, color, amount: 0 };
+              acc[key].amount += Number(e.amount);
+              return acc;
+            }, {})
+          )}
+        />
       </div>
 
       <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card/60">
