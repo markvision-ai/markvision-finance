@@ -1,30 +1,21 @@
 import { Link, useRouterState, Outlet, useNavigate } from "@tanstack/react-router";
-import { Home, TrendingDown, TrendingUp, Target, Landmark, CheckSquare, Settings, LogOut, MoreHorizontal } from "lucide-react";
+import { LogOut, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
-const nav = [
-  { to: "/", label: "Главная", icon: Home },
-  { to: "/expenses", label: "Расходы", icon: TrendingDown },
-  { to: "/incomes", label: "Доходы", icon: TrendingUp },
-  { to: "/goals", label: "Цели", icon: Target },
-  { to: "/debts", label: "Кредиты", icon: Landmark },
-  { to: "/tasks", label: "Задачи", icon: CheckSquare },
-  { to: "/settings", label: "Настройки", icon: Settings },
-] as const;
-
-const primaryMobile = nav.slice(0, 4);
-const extraMobile = nav.slice(4); // Кредиты, Задачи, Настройки
+import { useNavPrefs } from "@/hooks/use-nav-prefs";
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { visible, orderedAll } = useNavPrefs();
+  const primaryMobile = visible.slice(0, 4);
+  const extraMobile = visible.slice(4);
 
   useRealtime(["expenses", "incomes", "tasks", "debt_payments", "goal_contributions", "goals", "debts"]);
 
@@ -40,7 +31,7 @@ export function AppLayout() {
           <div className="text-xs text-muted-foreground">Финансовый ассистент</div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
-          {nav.map(({ to, label, icon: Icon }) => (
+          {orderedAll.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to as any}
@@ -90,7 +81,10 @@ export function AppLayout() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="grid grid-cols-5">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${primaryMobile.length + (extraMobile.length > 0 ? 1 : 0)}, minmax(0, 1fr))` }}
+        >
           {primaryMobile.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
@@ -104,6 +98,7 @@ export function AppLayout() {
               {label}
             </Link>
           ))}
+          {extraMobile.length > 0 && (
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
             <SheetTrigger asChild>
               <button
@@ -153,6 +148,7 @@ export function AppLayout() {
               </div>
             </SheetContent>
           </Sheet>
+          )}
         </div>
       </nav>
     </div>
