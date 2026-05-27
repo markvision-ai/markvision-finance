@@ -1,14 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/finance/PageHeader";
 import { StatCard } from "@/components/finance/StatCard";
 import { EmptyState } from "@/components/finance/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { money } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/debts")({ component: DebtsPage });
 
 function DebtsPage() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
   const { data: debts = [] } = useQuery({
     queryKey: ["debts"],
     queryFn: async () => {
@@ -19,10 +31,39 @@ function DebtsPage() {
   const active = debts.filter((d: any) => !d.is_closed);
   const remaining = active.reduce((s: number, d: any) => s + Number(d.current_balance), 0);
   const monthly = active.reduce((s: number, d: any) => s + Number(d.monthly_payment ?? 0), 0);
+  const add = useMutation({
+    mutationFn: async (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; interest_rate: number }) => {
+      const { error } = await supabase.from("debts" as any).insert({
+        user_id: user!.id,
+        name: v.name,
+        kind: v.kind,
+        initial_amount: v.initial_amount,
+        current_balance: v.initial_amount,
+        monthly_payment: v.monthly_payment || null,
+        interest_rate: v.interest_rate || null,
+        currency: "KZT",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Кредит добавлен"); setOpen(false); },
+    onError: (e: any) => toast.error(e.message),
+  });
 
   return (
     <div>
-      <PageHeader title="Кредиты" subtitle="Что должен и когда закроешь" />
+      <PageHeader
+        title="Кредиты"
+        subtitle="Что должен и когда закроешь"
+        action={
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button><Plus size={16} /> Добавить</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Новый кредит</DialogTitle></DialogHeader>
+              <DebtForm onSubmit={(v) => add.mutate(v)} />
+            </DialogContent>
+          </Dialog>
+        }
+      />
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard label="Активных" value={active.length} />
         <StatCard label="Остаток" value={money(remaining)} tone="danger" />
@@ -30,7 +71,7 @@ function DebtsPage() {
       </div>
       <div className="mt-6 space-y-3">
         {debts.length === 0 ? (
-          <EmptyState title="Кредитов нет" description="Скажи боту: «новый кредит ипотека 5 000 000 под 8%»." />
+          <EmptyState title="Кредитов нет" description="Нажми «Добавить» — укажи сумму и платёж." />
         ) : (
           debts.map((d: any) => {
             const paid = Number(d.initial_amount) - Number(d.current_balance);
@@ -56,5 +97,42 @@ function DebtsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; interest_rate: number }) => void }) {
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState("loan");
+  const [initial, setInitial] = useState("");
+  const [monthly, setMonthly] = useState("");
+  const [rate, setRate] = useState("");
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!name.trim() || !initial) return;
+        onSubmit({ name: name.trim(), kind, initial_amount: Number(initial), monthly_payment: Number(monthly || 0), interest_rate: Number(rate || 0) });
+      }}
+      className="space-y-4"
+    >
+      <div className="space-y-2"><Label>Название</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ипотека" autoFocus /></div>
+      <div className="space-y-2"><Label>Тип</Label>
+        <Select value={kind} onValueChange={setKind}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="loan">Кредит</SelectItem>
+            <SelectItem value="mortgage">Ипотека</SelectItem>
+            <SelectItem value="card">Кредитка</SelectItem>
+            <SelectItem value="personal">Долг</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2"><Label>Сумма, ₸</Label><Input type="number" inputMode="decimal" value={initial} onChange={(e) => setInitial(e.target.value)} /></div>
+        <div className="space-y-2"><Label>Платёж/мес, ₸</Label><Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} /></div>
+      </div>
+      <div className="space-y-2"><Label>Ставка, %</Label><Input type="number" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></div>
+      <Button type="submit" className="w-full">Создать</Button>
+    </form>
   );
 }
