@@ -18,6 +18,18 @@ import { Route as AuthenticatedIncomesRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
 import { Route as AuthenticatedDebtsRouteImport } from './routes/_authenticated/debts'
+import { Route as ApiPublicBotStatusQueryRouteImport } from './routes/api/public/bot/status-query'
+import { Route as ApiPublicBotRescheduleTaskRouteImport } from './routes/api/public/bot/reschedule-task'
+import { Route as ApiPublicBotParseRouteImport } from './routes/api/public/bot/parse'
+import { Route as ApiPublicBotIncomeRouteImport } from './routes/api/public/bot/income'
+import { Route as ApiPublicBotGoalContributionRouteImport } from './routes/api/public/bot/goal-contribution'
+import { Route as ApiPublicBotDebtPaymentRouteImport } from './routes/api/public/bot/debt-payment'
+import { Route as ApiPublicBotCreateGoalRouteImport } from './routes/api/public/bot/create-goal'
+import { Route as ApiPublicBotCreateDebtRouteImport } from './routes/api/public/bot/create-debt'
+import { Route as ApiPublicBotCloseTaskRouteImport } from './routes/api/public/bot/close-task'
+import { Route as ApiPublicBotCronWeeklyReportRouteImport } from './routes/api/public/bot/cron/weekly-report'
+import { Route as ApiPublicBotCronPaymentRemindersRouteImport } from './routes/api/public/bot/cron/payment-reminders'
+import { Route as ApiPublicBotCronAnomalyAlertsRouteImport } from './routes/api/public/bot/cron/anomaly-alerts'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -63,6 +75,71 @@ const AuthenticatedDebtsRoute = AuthenticatedDebtsRouteImport.update({
   path: '/debts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicBotStatusQueryRoute = ApiPublicBotStatusQueryRouteImport.update({
+  id: '/api/public/bot/status-query',
+  path: '/api/public/bot/status-query',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotRescheduleTaskRoute =
+  ApiPublicBotRescheduleTaskRouteImport.update({
+    id: '/api/public/bot/reschedule-task',
+    path: '/api/public/bot/reschedule-task',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBotParseRoute = ApiPublicBotParseRouteImport.update({
+  id: '/api/public/bot/parse',
+  path: '/api/public/bot/parse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotIncomeRoute = ApiPublicBotIncomeRouteImport.update({
+  id: '/api/public/bot/income',
+  path: '/api/public/bot/income',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotGoalContributionRoute =
+  ApiPublicBotGoalContributionRouteImport.update({
+    id: '/api/public/bot/goal-contribution',
+    path: '/api/public/bot/goal-contribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBotDebtPaymentRoute = ApiPublicBotDebtPaymentRouteImport.update({
+  id: '/api/public/bot/debt-payment',
+  path: '/api/public/bot/debt-payment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotCreateGoalRoute = ApiPublicBotCreateGoalRouteImport.update({
+  id: '/api/public/bot/create-goal',
+  path: '/api/public/bot/create-goal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotCreateDebtRoute = ApiPublicBotCreateDebtRouteImport.update({
+  id: '/api/public/bot/create-debt',
+  path: '/api/public/bot/create-debt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotCloseTaskRoute = ApiPublicBotCloseTaskRouteImport.update({
+  id: '/api/public/bot/close-task',
+  path: '/api/public/bot/close-task',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicBotCronWeeklyReportRoute =
+  ApiPublicBotCronWeeklyReportRouteImport.update({
+    id: '/api/public/bot/cron/weekly-report',
+    path: '/api/public/bot/cron/weekly-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBotCronPaymentRemindersRoute =
+  ApiPublicBotCronPaymentRemindersRouteImport.update({
+    id: '/api/public/bot/cron/payment-reminders',
+    path: '/api/public/bot/cron/payment-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicBotCronAnomalyAlertsRoute =
+  ApiPublicBotCronAnomalyAlertsRouteImport.update({
+    id: '/api/public/bot/cron/anomaly-alerts',
+    path: '/api/public/bot/cron/anomaly-alerts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -73,6 +150,18 @@ export interface FileRoutesByFullPath {
   '/incomes': typeof AuthenticatedIncomesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
+  '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
+  '/api/public/bot/create-goal': typeof ApiPublicBotCreateGoalRoute
+  '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
+  '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
+  '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
+  '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
+  '/api/public/bot/cron/anomaly-alerts': typeof ApiPublicBotCronAnomalyAlertsRoute
+  '/api/public/bot/cron/payment-reminders': typeof ApiPublicBotCronPaymentRemindersRoute
+  '/api/public/bot/cron/weekly-report': typeof ApiPublicBotCronWeeklyReportRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -83,6 +172,18 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
+  '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
+  '/api/public/bot/create-goal': typeof ApiPublicBotCreateGoalRoute
+  '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
+  '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
+  '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
+  '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
+  '/api/public/bot/cron/anomaly-alerts': typeof ApiPublicBotCronAnomalyAlertsRoute
+  '/api/public/bot/cron/payment-reminders': typeof ApiPublicBotCronPaymentRemindersRoute
+  '/api/public/bot/cron/weekly-report': typeof ApiPublicBotCronWeeklyReportRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -95,6 +196,18 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
+  '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
+  '/api/public/bot/create-goal': typeof ApiPublicBotCreateGoalRoute
+  '/api/public/bot/debt-payment': typeof ApiPublicBotDebtPaymentRoute
+  '/api/public/bot/goal-contribution': typeof ApiPublicBotGoalContributionRoute
+  '/api/public/bot/income': typeof ApiPublicBotIncomeRoute
+  '/api/public/bot/parse': typeof ApiPublicBotParseRoute
+  '/api/public/bot/reschedule-task': typeof ApiPublicBotRescheduleTaskRoute
+  '/api/public/bot/status-query': typeof ApiPublicBotStatusQueryRoute
+  '/api/public/bot/cron/anomaly-alerts': typeof ApiPublicBotCronAnomalyAlertsRoute
+  '/api/public/bot/cron/payment-reminders': typeof ApiPublicBotCronPaymentRemindersRoute
+  '/api/public/bot/cron/weekly-report': typeof ApiPublicBotCronWeeklyReportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -107,6 +220,18 @@ export interface FileRouteTypes {
     | '/incomes'
     | '/settings'
     | '/tasks'
+    | '/api/public/bot/close-task'
+    | '/api/public/bot/create-debt'
+    | '/api/public/bot/create-goal'
+    | '/api/public/bot/debt-payment'
+    | '/api/public/bot/goal-contribution'
+    | '/api/public/bot/income'
+    | '/api/public/bot/parse'
+    | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
+    | '/api/public/bot/cron/anomaly-alerts'
+    | '/api/public/bot/cron/payment-reminders'
+    | '/api/public/bot/cron/weekly-report'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -117,6 +242,18 @@ export interface FileRouteTypes {
     | '/settings'
     | '/tasks'
     | '/'
+    | '/api/public/bot/close-task'
+    | '/api/public/bot/create-debt'
+    | '/api/public/bot/create-goal'
+    | '/api/public/bot/debt-payment'
+    | '/api/public/bot/goal-contribution'
+    | '/api/public/bot/income'
+    | '/api/public/bot/parse'
+    | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
+    | '/api/public/bot/cron/anomaly-alerts'
+    | '/api/public/bot/cron/payment-reminders'
+    | '/api/public/bot/cron/weekly-report'
   id:
     | '__root__'
     | '/_authenticated'
@@ -128,11 +265,35 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/'
+    | '/api/public/bot/close-task'
+    | '/api/public/bot/create-debt'
+    | '/api/public/bot/create-goal'
+    | '/api/public/bot/debt-payment'
+    | '/api/public/bot/goal-contribution'
+    | '/api/public/bot/income'
+    | '/api/public/bot/parse'
+    | '/api/public/bot/reschedule-task'
+    | '/api/public/bot/status-query'
+    | '/api/public/bot/cron/anomaly-alerts'
+    | '/api/public/bot/cron/payment-reminders'
+    | '/api/public/bot/cron/weekly-report'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiPublicBotCloseTaskRoute: typeof ApiPublicBotCloseTaskRoute
+  ApiPublicBotCreateDebtRoute: typeof ApiPublicBotCreateDebtRoute
+  ApiPublicBotCreateGoalRoute: typeof ApiPublicBotCreateGoalRoute
+  ApiPublicBotDebtPaymentRoute: typeof ApiPublicBotDebtPaymentRoute
+  ApiPublicBotGoalContributionRoute: typeof ApiPublicBotGoalContributionRoute
+  ApiPublicBotIncomeRoute: typeof ApiPublicBotIncomeRoute
+  ApiPublicBotParseRoute: typeof ApiPublicBotParseRoute
+  ApiPublicBotRescheduleTaskRoute: typeof ApiPublicBotRescheduleTaskRoute
+  ApiPublicBotStatusQueryRoute: typeof ApiPublicBotStatusQueryRoute
+  ApiPublicBotCronAnomalyAlertsRoute: typeof ApiPublicBotCronAnomalyAlertsRoute
+  ApiPublicBotCronPaymentRemindersRoute: typeof ApiPublicBotCronPaymentRemindersRoute
+  ApiPublicBotCronWeeklyReportRoute: typeof ApiPublicBotCronWeeklyReportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -200,6 +361,90 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDebtsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/bot/status-query': {
+      id: '/api/public/bot/status-query'
+      path: '/api/public/bot/status-query'
+      fullPath: '/api/public/bot/status-query'
+      preLoaderRoute: typeof ApiPublicBotStatusQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/reschedule-task': {
+      id: '/api/public/bot/reschedule-task'
+      path: '/api/public/bot/reschedule-task'
+      fullPath: '/api/public/bot/reschedule-task'
+      preLoaderRoute: typeof ApiPublicBotRescheduleTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/parse': {
+      id: '/api/public/bot/parse'
+      path: '/api/public/bot/parse'
+      fullPath: '/api/public/bot/parse'
+      preLoaderRoute: typeof ApiPublicBotParseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/income': {
+      id: '/api/public/bot/income'
+      path: '/api/public/bot/income'
+      fullPath: '/api/public/bot/income'
+      preLoaderRoute: typeof ApiPublicBotIncomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/goal-contribution': {
+      id: '/api/public/bot/goal-contribution'
+      path: '/api/public/bot/goal-contribution'
+      fullPath: '/api/public/bot/goal-contribution'
+      preLoaderRoute: typeof ApiPublicBotGoalContributionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/debt-payment': {
+      id: '/api/public/bot/debt-payment'
+      path: '/api/public/bot/debt-payment'
+      fullPath: '/api/public/bot/debt-payment'
+      preLoaderRoute: typeof ApiPublicBotDebtPaymentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/create-goal': {
+      id: '/api/public/bot/create-goal'
+      path: '/api/public/bot/create-goal'
+      fullPath: '/api/public/bot/create-goal'
+      preLoaderRoute: typeof ApiPublicBotCreateGoalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/create-debt': {
+      id: '/api/public/bot/create-debt'
+      path: '/api/public/bot/create-debt'
+      fullPath: '/api/public/bot/create-debt'
+      preLoaderRoute: typeof ApiPublicBotCreateDebtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/close-task': {
+      id: '/api/public/bot/close-task'
+      path: '/api/public/bot/close-task'
+      fullPath: '/api/public/bot/close-task'
+      preLoaderRoute: typeof ApiPublicBotCloseTaskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/cron/weekly-report': {
+      id: '/api/public/bot/cron/weekly-report'
+      path: '/api/public/bot/cron/weekly-report'
+      fullPath: '/api/public/bot/cron/weekly-report'
+      preLoaderRoute: typeof ApiPublicBotCronWeeklyReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/cron/payment-reminders': {
+      id: '/api/public/bot/cron/payment-reminders'
+      path: '/api/public/bot/cron/payment-reminders'
+      fullPath: '/api/public/bot/cron/payment-reminders'
+      preLoaderRoute: typeof ApiPublicBotCronPaymentRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/bot/cron/anomaly-alerts': {
+      id: '/api/public/bot/cron/anomaly-alerts'
+      path: '/api/public/bot/cron/anomaly-alerts'
+      fullPath: '/api/public/bot/cron/anomaly-alerts'
+      preLoaderRoute: typeof ApiPublicBotCronAnomalyAlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -230,6 +475,18 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiPublicBotCloseTaskRoute: ApiPublicBotCloseTaskRoute,
+  ApiPublicBotCreateDebtRoute: ApiPublicBotCreateDebtRoute,
+  ApiPublicBotCreateGoalRoute: ApiPublicBotCreateGoalRoute,
+  ApiPublicBotDebtPaymentRoute: ApiPublicBotDebtPaymentRoute,
+  ApiPublicBotGoalContributionRoute: ApiPublicBotGoalContributionRoute,
+  ApiPublicBotIncomeRoute: ApiPublicBotIncomeRoute,
+  ApiPublicBotParseRoute: ApiPublicBotParseRoute,
+  ApiPublicBotRescheduleTaskRoute: ApiPublicBotRescheduleTaskRoute,
+  ApiPublicBotStatusQueryRoute: ApiPublicBotStatusQueryRoute,
+  ApiPublicBotCronAnomalyAlertsRoute: ApiPublicBotCronAnomalyAlertsRoute,
+  ApiPublicBotCronPaymentRemindersRoute: ApiPublicBotCronPaymentRemindersRoute,
+  ApiPublicBotCronWeeklyReportRoute: ApiPublicBotCronWeeklyReportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
