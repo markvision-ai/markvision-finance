@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { money } from "@/lib/format";
+import { MoneyInput } from "@/components/finance/MoneyInput";
 
 export const Route = createFileRoute("/_authenticated/expenses")({ component: ExpensesPage });
 
@@ -144,7 +145,7 @@ function ExpenseForm({ cats, onSubmit }: { cats: any[]; onSubmit: (v: any) => vo
       }}
       className="space-y-4"
     >
-      <div className="space-y-2"><Label>Сумма, ₸</Label><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></div>
+      <div className="space-y-2"><Label>Сумма, ₸</Label><MoneyInput value={amount} onValueChange={setAmount} placeholder="1 500" autoFocus /></div>
       <div className="space-y-2"><Label>Категория</Label>
         <Select value={cat} onValueChange={setCat}>
           <SelectTrigger><SelectValue placeholder="Выбери" /></SelectTrigger>

@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money } from "@/lib/format";
+import { MoneyInput } from "@/components/finance/MoneyInput";
+import { DatePicker } from "@/components/finance/DatePicker";
 
 export const Route = createFileRoute("/_authenticated/goals")({ component: GoalsPage });
 
@@ -95,10 +97,10 @@ function GoalForm({ onSubmit }: { onSubmit: (v: { name: string; target_amount: n
     >
       <div className="space-y-2"><Label>Название</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Квартира" autoFocus /></div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2"><Label>Цель, ₸</Label><Input type="number" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="5000000" /></div>
-        <div className="space-y-2"><Label>Уже есть, ₸</Label><Input type="number" inputMode="decimal" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="0" /></div>
+        <div className="space-y-2"><Label>Цель, ₸</Label><MoneyInput value={target} onValueChange={setTarget} placeholder="5 000 000" /></div>
+        <div className="space-y-2"><Label>Уже есть, ₸</Label><MoneyInput value={current} onValueChange={setCurrent} placeholder="0" /></div>
       </div>
-      <div className="space-y-2"><Label>Целевая дата</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+      <div className="space-y-2"><Label>Целевая дата</Label><DatePicker value={date} onChange={setDate} /></div>
       <Button type="submit" className="w-full">Создать</Button>
     </form>
   );

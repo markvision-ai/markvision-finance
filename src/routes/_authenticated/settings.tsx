@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/finance/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CategoryManager } from "@/components/finance/CategoryManager";
+import { BankManager } from "@/components/finance/BankManager";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -63,6 +65,9 @@ function SettingsPage() {
           </div>
           <Button className="mt-3" onClick={() => save.mutate()} disabled={save.isPending}>Сохранить</Button>
         </section>
+        <CategoryManager kind="expense" title="Категории расходов" />
+        <CategoryManager kind="income" title="Категории доходов" />
+        <BankManager />
       </div>
     </div>
   );
