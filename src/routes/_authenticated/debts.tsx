@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Plus, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, getDate } from "date-fns";
 import { ru } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,7 @@ import { money } from "@/lib/format";
 import { MoneyInput } from "@/components/finance/MoneyInput";
 import { useBanks } from "@/hooks/use-banks";
 import { Breakdown } from "@/components/finance/Breakdown";
+import { createDebtReminder } from "@/lib/google-calendar.functions";
 
 export const Route = createFileRoute("/_authenticated/debts")({ component: DebtsPage });
 
@@ -29,6 +31,7 @@ function DebtsPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const reminderFn = useServerFn(createDebtReminder);
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
   const { data: debts = [] } = useQuery({
     queryKey: ["debts"],
@@ -54,6 +57,20 @@ function DebtsPage() {
         currency: "KZT",
       });
       if (error) throw error;
+      if (v.pay_date && v.monthly_payment) {
+        try {
+          await reminderFn({
+            data: {
+              title: `Платёж: ${v.name}${v.bank ? ` (${v.bank})` : ""}`,
+              description: `Сумма: ${money(v.monthly_payment)}`,
+              startDate: format(v.pay_date, "yyyy-MM-dd"),
+              recurMonthly: true,
+            },
+          });
+        } catch (e) {
+          console.warn("debt reminder failed", e);
+        }
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Кредит добавлен"); setOpen(false); },
     onError: (e: any) => toast.error(e.message),
