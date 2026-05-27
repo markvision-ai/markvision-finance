@@ -67,12 +67,8 @@ function SettingsPage() {
           </div>
           <Button className="mt-3" onClick={() => save.mutate()} disabled={save.isPending}>Сохранить</Button>
         </section>
-        <CategoryManager kind="expense" title="Категории расходов" />
-        <CategoryManager kind="income" title="Категории доходов" />
-        <BankManager />
-
         <section className="rounded-2xl border border-border bg-card/60 p-5">
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Быстрый доступ</h2>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Справочники</h2>
           <div className="grid gap-2">
             <SheetRow icon={<Tags size={16} />} label="Категории расходов">
               <CategoryManager kind="expense" title="Категории расходов" />
