@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Check, Plus, Trash2 } from "lucide-react";
@@ -92,7 +92,7 @@ function TasksPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const importMut = useMutation({
-    mutationFn: () => importFn({ data: { days: 7 } }),
+    mutationFn: () => importFn({ data: { days: 30 } }),
     onSuccess: (r: any) => {
       qc.invalidateQueries({ queryKey: ["tasks"] });
       qc.invalidateQueries({ queryKey: ["gcal", "today"] });
@@ -102,6 +102,18 @@ function TasksPage() {
     },
     onError: (e: any) => toast.error(e.message ?? "Не удалось импортировать"),
   });
+
+  // Auto-import GCal events on mount (silent) so the page always reflects
+  // what's in Google Calendar, not only manually-added tasks.
+  useEffect(() => {
+    importFn({ data: { days: 30 } })
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ["tasks"] });
+        qc.invalidateQueries({ queryKey: ["gcal", "today"] });
+      })
+      .catch((e) => console.warn("auto-import gcal failed", e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>
