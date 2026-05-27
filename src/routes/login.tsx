@@ -50,7 +50,7 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-2 text-3xl font-semibold tracking-tight">
-            Personal<span className="text-primary">.</span>
+            MarkVision<span className="text-primary">.</span>
           </div>
           <p className="text-sm text-muted-foreground">Финансовый ассистент с Telegram-ботом</p>
         </div>
