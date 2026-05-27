@@ -64,7 +64,7 @@ function ExpensesPage() {
         amount: vals.amount,
         category_id: vals.category_id || null,
         description: vals.description || null,
-        currency: "RUB",
+        currency: "KZT",
       });
       if (error) throw error;
     },
@@ -144,7 +144,7 @@ function ExpenseForm({ cats, onSubmit }: { cats: any[]; onSubmit: (v: any) => vo
       }}
       className="space-y-4"
     >
-      <div className="space-y-2"><Label>Сумма ₽</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></div>
+      <div className="space-y-2"><Label>Сумма, ₸</Label><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></div>
       <div className="space-y-2"><Label>Категория</Label>
         <Select value={cat} onValueChange={setCat}>
           <SelectTrigger><SelectValue placeholder="Выбери" /></SelectTrigger>
