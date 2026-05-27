@@ -81,7 +81,10 @@ export function AppLayout() {
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="grid grid-cols-5">
+        <div
+          className="grid"
+          style={{ gridTemplateColumns: `repeat(${primaryMobile.length + (extraMobile.length > 0 ? 1 : 0)}, minmax(0, 1fr))` }}
+        >
           {primaryMobile.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
@@ -95,6 +98,7 @@ export function AppLayout() {
               {label}
             </Link>
           ))}
+          {extraMobile.length > 0 && (
           <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
             <SheetTrigger asChild>
               <button
@@ -144,6 +148,7 @@ export function AppLayout() {
               </div>
             </SheetContent>
           </Sheet>
+          )}
         </div>
       </nav>
     </div>
