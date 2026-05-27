@@ -11,6 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "@/components/ui/sonner";
+import { AutoUpdater } from "@/components/AutoUpdater";
 
 function NotFoundComponent() {
   return (
@@ -122,6 +123,7 @@ function RootComponent() {
       <AuthProvider>
         <Outlet />
         <Toaster richColors theme="dark" />
+        <AutoUpdater />
       </AuthProvider>
     </QueryClientProvider>
   );
