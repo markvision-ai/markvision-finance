@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CategoryManager } from "@/components/finance/CategoryManager";
 import { BankManager } from "@/components/finance/BankManager";
+import { NavItemsManager } from "@/components/finance/NavItemsManager";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ChevronRight, Tags, Wallet, Landmark } from "lucide-react";
+import { ChevronRight, Tags, Wallet, Landmark, LayoutGrid } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -80,6 +81,10 @@ function SettingsPage() {
               <BankManager />
             </SheetRow>
           </div>
+        </section>
+        <section className="rounded-2xl border border-border bg-card/60 p-5">
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Отображаемые разделы в меню</h2>
+          <NavItemsManager />
         </section>
       </div>
     </div>
