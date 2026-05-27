@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { money } from "@/lib/format";
+import { MoneyInput } from "@/components/finance/MoneyInput";
 
 export const Route = createFileRoute("/_authenticated/incomes")({ component: IncomesPage });
 
@@ -95,7 +96,7 @@ function IncomeForm({ onSubmit }: { onSubmit: (v: { amount: number; client_name:
       onSubmit={(e) => { e.preventDefault(); if (!amount) return; onSubmit({ amount: Number(amount), client_name: client, description: desc }); }}
       className="space-y-4"
     >
-      <div className="space-y-2"><Label>Сумма, ₸</Label><Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus /></div>
+      <div className="space-y-2"><Label>Сумма, ₸</Label><MoneyInput value={amount} onValueChange={setAmount} placeholder="200 000" autoFocus /></div>
       <div className="space-y-2"><Label>Клиент</Label><Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Иван" /></div>
       <div className="space-y-2"><Label>Описание</Label><Input value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
       <Button type="submit" className="w-full">Сохранить</Button>
