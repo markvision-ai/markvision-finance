@@ -20,6 +20,22 @@ function SettingsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [chatId, setChatId] = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    const current = (user?.user_metadata as any)?.display_name ?? "";
+    setDisplayName(current);
+  }, [user]);
+
+  const saveName = useMutation({
+    mutationFn: async () => {
+      const name = displayName.trim().slice(0, 60);
+      const { error } = await supabase.auth.updateUser({ data: { display_name: name } });
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Имя сохранено"),
+    onError: (e: any) => toast.error(e.message),
+  });
 
   const { data: tg } = useQuery({
     queryKey: ["telegram_users"],
@@ -53,7 +69,19 @@ function SettingsPage() {
       <div className="space-y-6">
         <section className="rounded-2xl border border-border bg-card/60 p-5">
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">Профиль</h2>
-          <div className="text-sm">{user?.email}</div>
+          <div className="mb-4 text-xs text-muted-foreground">{user?.email}</div>
+          <div className="space-y-2">
+            <Label>Отображаемое имя</Label>
+            <Input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Как тебя называть"
+              maxLength={60}
+            />
+          </div>
+          <Button className="mt-3" onClick={() => saveName.mutate()} disabled={saveName.isPending}>
+            Сохранить
+          </Button>
         </section>
         <section className="rounded-2xl border border-border bg-card/60 p-5">
           <h2 className="mb-1 text-sm font-medium text-muted-foreground">Telegram</h2>
