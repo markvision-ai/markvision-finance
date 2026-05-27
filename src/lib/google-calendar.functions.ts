@@ -121,7 +121,8 @@ export const deleteCalendarEvent = createServerFn({ method: "POST" })
         { method: "DELETE" },
       );
     } catch (e: any) {
-      if (!/\b40[04]\b/.test(String(e?.message ?? ""))) throw e;
+      // 404 = not found, 410 = already deleted — both are fine.
+      if (!/\b(404|410)\b/.test(String(e?.message ?? ""))) throw e;
     }
     return { ok: true };
   });
