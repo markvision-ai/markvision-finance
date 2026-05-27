@@ -374,13 +374,16 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          due_date: string | null
           duration_minutes: number | null
           ends_at: string | null
           google_event_id: string | null
           id: string
+          is_todo: boolean
           raw_text: string | null
+          reminded_at: string | null
           source: string | null
-          starts_at: string
+          starts_at: string | null
           status: string
           title: string
           updated_at: string
@@ -389,13 +392,16 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           duration_minutes?: number | null
           ends_at?: string | null
           google_event_id?: string | null
           id?: string
+          is_todo?: boolean
           raw_text?: string | null
+          reminded_at?: string | null
           source?: string | null
-          starts_at: string
+          starts_at?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -404,13 +410,16 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           duration_minutes?: number | null
           ends_at?: string | null
           google_event_id?: string | null
           id?: string
+          is_todo?: boolean
           raw_text?: string | null
+          reminded_at?: string | null
           source?: string | null
-          starts_at?: string
+          starts_at?: string | null
           status?: string
           title?: string
           updated_at?: string
