@@ -57,7 +57,7 @@ export function AppLayout() {
             className="w-full justify-start gap-2"
             onClick={async () => {
               await signOut();
-              navigate({ to: "/login" });
+              navigate({ to: "/login" as any });
             }}
           >
             <LogOut size={16} /> Выйти
@@ -78,7 +78,7 @@ export function AppLayout() {
           {nav.slice(0, 5).map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
-              to={to}
+              to={to as any}
               className={cn(
                 "flex flex-col items-center gap-1 py-2.5 text-[10px]",
                 isActive(to) ? "text-primary" : "text-muted-foreground"
