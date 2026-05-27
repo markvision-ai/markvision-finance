@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Wallet, Landmark, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
@@ -29,24 +29,30 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Dashboard,
 });
 
-async function fetchDashboard(monthStart: Date) {
+async function fetchStatic() {
   const twelveMonthsAgo = subMonths(startOfMonth(new Date()), 11).toISOString();
-  const fromISO = startOfMonth(monthStart).toISOString();
-  const toISO = endOfMonth(monthStart).toISOString();
-  const [{ data: mb }, { data: monthExp }, { data: monthInc }, { data: goals }, { data: debtsSum }] =
-    await Promise.all([
-      supabase.from("monthly_balance" as any).select("*").gte("month", twelveMonthsAgo).order("month"),
-      supabase.from("expenses").select("id, amount, description, occurred_at, currency").gte("occurred_at", fromISO).lte("occurred_at", toISO).order("occurred_at", { ascending: false }),
-      supabase.from("incomes" as any).select("id, amount, description, received_at, currency").gte("received_at", fromISO).lte("received_at", toISO).order("received_at", { ascending: false }),
-      supabase.from("goals").select("*").eq("is_archived", false).limit(10),
-      supabase.from("debts_summary" as any).select("*").maybeSingle(),
-    ]);
+  const [{ data: mb }, { data: goals }, { data: debtsSum }] = await Promise.all([
+    supabase.from("monthly_balance" as any).select("*").gte("month", twelveMonthsAgo).order("month"),
+    supabase.from("goals").select("*").eq("is_archived", false).limit(10),
+    supabase.from("debts_summary" as any).select("*").maybeSingle(),
+  ]);
   return {
     monthlyBalance: (mb as any[]) ?? [],
-    monthExpenses: (monthExp as any[]) ?? [],
-    monthIncomes: (monthInc as any[]) ?? [],
     goals: (goals as any[]) ?? [],
     debtsSummary: (debtsSum as any) ?? null,
+  };
+}
+
+async function fetchMonth(monthStart: Date) {
+  const fromISO = startOfMonth(monthStart).toISOString();
+  const toISO = endOfMonth(monthStart).toISOString();
+  const [{ data: monthExp }, { data: monthInc }] = await Promise.all([
+    supabase.from("expenses").select("id, amount, description, occurred_at, currency").gte("occurred_at", fromISO).lte("occurred_at", toISO).order("occurred_at", { ascending: false }),
+    supabase.from("incomes" as any).select("id, amount, description, received_at, currency").gte("received_at", fromISO).lte("received_at", toISO).order("received_at", { ascending: false }),
+  ]);
+  return {
+    monthExpenses: (monthExp as any[]) ?? [],
+    monthIncomes: (monthInc as any[]) ?? [],
   };
 }
 
@@ -56,7 +62,25 @@ function Dashboard() {
   const [month, setMonth] = useState<Date>(startOfMonth(new Date()));
   const [pickerOpen, setPickerOpen] = useState(false);
   const monthKey = format(month, "yyyy-MM");
-  const { data, isLoading } = useQuery({ queryKey: ["dashboard", monthKey], queryFn: () => fetchDashboard(month) });
+  const staticQ = useQuery({
+    queryKey: ["dashboard", "static"],
+    queryFn: fetchStatic,
+    staleTime: 60_000,
+  });
+  const monthQ = useQuery({
+    queryKey: ["dashboard", "month", monthKey],
+    queryFn: () => fetchMonth(month),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const data = {
+    monthlyBalance: staticQ.data?.monthlyBalance ?? [],
+    goals: staticQ.data?.goals ?? [],
+    debtsSummary: staticQ.data?.debtsSummary ?? null,
+    monthExpenses: monthQ.data?.monthExpenses ?? [],
+    monthIncomes: monthQ.data?.monthIncomes ?? [],
+  };
+  const isLoading = staticQ.isLoading || (monthQ.isLoading && !monthQ.data);
 
   const chartData = useMemo(() => {
     return (data?.monthlyBalance ?? []).map((r: any) => ({
@@ -68,8 +92,8 @@ function Dashboard() {
     }));
   }, [data]);
 
-  const expTotal = (data?.monthExpenses ?? []).reduce((s, e: any) => s + Number(e.amount), 0);
-  const incTotal = (data?.monthIncomes ?? []).reduce((s, i: any) => s + Number(i.amount), 0);
+  const expTotal = data.monthExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+  const incTotal = data.monthIncomes.reduce((s: number, i: any) => s + Number(i.amount), 0);
   const balance = incTotal - expTotal;
   const isThisMonth = isSameMonth(month, new Date());
   const monthLabel = format(month, "LLLL yyyy", { locale: ru });
