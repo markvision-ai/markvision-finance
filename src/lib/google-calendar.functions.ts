@@ -25,6 +25,11 @@ async function gcalFetch(path: string, init: RequestInit = {}) {
   });
   const body = await res.text();
   if (!res.ok) {
+    // Idempotent DELETE: treat already-gone/missing as success.
+    const method = (init.method ?? "GET").toUpperCase();
+    if (method === "DELETE" && (res.status === 404 || res.status === 410)) {
+      return null;
+    }
     throw new Error(`Google Calendar API [${res.status}]: ${body.slice(0, 400)}`);
   }
   return body ? JSON.parse(body) : null;
