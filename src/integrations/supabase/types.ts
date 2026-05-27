@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      debt_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          debt_id: string
+          id: string
+          paid_at: string
+          raw_text: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          debt_id: string
+          id?: string
+          paid_at?: string
+          raw_text?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          debt_id?: string
+          id?: string
+          paid_at?: string
+          raw_text?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_payments_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      debts: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          currency: string
+          current_balance: number
+          description: string | null
+          end_date: string | null
+          id: string
+          initial_amount: number
+          interest_rate: number | null
+          is_closed: boolean
+          kind: string
+          monthly_payment: number | null
+          name: string
+          start_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          currency?: string
+          current_balance: number
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          initial_amount: number
+          interest_rate?: number | null
+          is_closed?: boolean
+          kind?: string
+          monthly_payment?: number | null
+          name: string
+          start_date?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          currency?: string
+          current_balance?: number
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          initial_amount?: number
+          interest_rate?: number | null
+          is_closed?: boolean
+          kind?: string
+          monthly_payment?: number | null
+          name?: string
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           color: string
@@ -94,41 +192,100 @@ export type Database = {
           },
         ]
       }
+      goal_contributions: {
+        Row: {
+          amount: number
+          created_at: string
+          goal_id: string
+          id: string
+          note: string | null
+          occurred_at: string
+          raw_text: string | null
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          goal_id: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          raw_text?: string | null
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          goal_id?: string
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          raw_text?: string | null
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_contributions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           category_id: string | null
+          color: string | null
           created_at: string
           currency: string
           current_amount: number
+          description: string | null
+          icon: string | null
           id: string
+          is_archived: boolean
           kind: string
           name: string
           target_amount: number
           target_date: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           category_id?: string | null
+          color?: string | null
           created_at?: string
           currency?: string
           current_amount?: number
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_archived?: boolean
           kind?: string
           name: string
           target_amount: number
           target_date?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           category_id?: string | null
+          color?: string | null
           created_at?: string
           currency?: string
           current_amount?: number
+          description?: string | null
+          icon?: string | null
           id?: string
+          is_archived?: boolean
           kind?: string
           name?: string
           target_amount?: number
           target_date?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -140,6 +297,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      income_categories: {
+        Row: {
+          color: string
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          slug: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      incomes: {
+        Row: {
+          amount: number
+          category_id: string | null
+          client_name: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          raw_text: string | null
+          received_at: string
+          source: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          raw_text?: string | null
+          received_at?: string
+          source?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          raw_text?: string | null
+          received_at?: string
+          source?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       tasks: {
         Row: {
@@ -215,7 +444,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      debts_summary: {
+        Row: {
+          active_count: number | null
+          total_initial: number | null
+          total_monthly: number | null
+          total_remaining: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      monthly_balance: {
+        Row: {
+          balance: number | null
+          expense_total: number | null
+          income_total: number | null
+          month: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_by_chat_id: { Args: { p_chat_id: number }; Returns: string }
