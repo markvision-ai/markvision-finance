@@ -1,9 +1,11 @@
 import { Link, useRouterState, Outlet, useNavigate } from "@tanstack/react-router";
-import { Home, TrendingDown, TrendingUp, Target, Landmark, CheckSquare, Settings, LogOut } from "lucide-react";
+import { Home, TrendingDown, TrendingUp, Target, Landmark, CheckSquare, Settings, LogOut, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/hooks/use-realtime";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const nav = [
   { to: "/", label: "Главная", icon: Home },
@@ -15,14 +17,19 @@ const nav = [
   { to: "/settings", label: "Настройки", icon: Settings },
 ] as const;
 
+const primaryMobile = nav.slice(0, 4);
+const extraMobile = nav.slice(4); // Кредиты, Задачи, Настройки
+
 export function AppLayout() {
   const { user, signOut } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useRealtime(["expenses", "incomes", "tasks", "debt_payments", "goal_contributions", "goals", "debts"]);
 
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const moreActive = extraMobile.some((n) => isActive(n.to));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -75,7 +82,7 @@ export function AppLayout() {
       {/* Bottom nav (mobile) */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-sidebar/95 backdrop-blur md:hidden">
         <div className="grid grid-cols-5">
-          {nav.slice(0, 5).map(({ to, label, icon: Icon }) => (
+          {primaryMobile.map(({ to, label, icon: Icon }) => (
             <Link
               key={to}
               to={to as any}
@@ -88,6 +95,55 @@ export function AppLayout() {
               {label}
             </Link>
           ))}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "flex flex-col items-center gap-1 py-2.5 text-[10px]",
+                  moreActive ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                <MoreHorizontal size={20} />
+                Ещё
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl">
+              <SheetHeader>
+                <SheetTitle>Меню</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 grid gap-1">
+                {extraMobile.map(({ to, label, icon: Icon }) => (
+                  <Link
+                    key={to}
+                    to={to as any}
+                    onClick={() => setMoreOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors",
+                      isActive(to) ? "bg-primary/15 text-primary" : "hover:bg-accent"
+                    )}
+                  >
+                    <Icon size={18} />
+                    {label}
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-4 border-t border-border pt-3">
+                <div className="mb-2 truncate px-1 text-xs text-muted-foreground">{user?.email}</div>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  onClick={async () => {
+                    setMoreOpen(false);
+                    await signOut();
+                    navigate({ to: "/login" as any });
+                  }}
+                >
+                  <LogOut size={16} /> Выйти
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </nav>
     </div>
