@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { money } from "@/lib/format";
+import { MoneyInput } from "@/components/finance/MoneyInput";
+import { useBanks } from "@/hooks/use-banks";
 
 export const Route = createFileRoute("/_authenticated/debts")({ component: DebtsPage });
 
@@ -32,7 +34,7 @@ function DebtsPage() {
   const remaining = active.reduce((s: number, d: any) => s + Number(d.current_balance), 0);
   const monthly = active.reduce((s: number, d: any) => s + Number(d.monthly_payment ?? 0), 0);
   const add = useMutation({
-    mutationFn: async (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; interest_rate: number }) => {
+    mutationFn: async (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string }) => {
       const { error } = await supabase.from("debts" as any).insert({
         user_id: user!.id,
         name: v.name,
@@ -40,7 +42,7 @@ function DebtsPage() {
         initial_amount: v.initial_amount,
         current_balance: v.initial_amount,
         monthly_payment: v.monthly_payment || null,
-        interest_rate: v.interest_rate || null,
+        description: v.bank || null,
         currency: "KZT",
       });
       if (error) throw error;
@@ -81,7 +83,9 @@ function DebtsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-base font-medium">{d.name}{d.is_closed && <span className="ml-2 text-xs text-success">закрыт</span>}</div>
-                    <div className="text-xs text-muted-foreground">{d.kind} · {d.interest_rate ?? "—"}% · платёж {money(d.monthly_payment ?? 0, d.currency)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {kindLabel(d.kind)}{d.description ? ` · ${d.description}` : ""} · платёж {money(d.monthly_payment ?? 0, d.currency)}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="font-mono text-lg tabular-nums">{money(d.current_balance, d.currency)}</div>
@@ -100,18 +104,23 @@ function DebtsPage() {
   );
 }
 
-function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; interest_rate: number }) => void }) {
+function kindLabel(k: string) {
+  return ({ loan: "Кредит", mortgage: "Ипотека", card: "Кредитка", personal: "Долг" } as Record<string, string>)[k] ?? k;
+}
+
+function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string }) => void }) {
   const [name, setName] = useState("");
   const [kind, setKind] = useState("loan");
   const [initial, setInitial] = useState("");
   const [monthly, setMonthly] = useState("");
-  const [rate, setRate] = useState("");
+  const { banks } = useBanks();
+  const [bank, setBank] = useState(banks[0] ?? "");
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         if (!name.trim() || !initial) return;
-        onSubmit({ name: name.trim(), kind, initial_amount: Number(initial), monthly_payment: Number(monthly || 0), interest_rate: Number(rate || 0) });
+        onSubmit({ name: name.trim(), kind, initial_amount: Number(initial), monthly_payment: Number(monthly || 0), bank });
       }}
       className="space-y-4"
     >
@@ -128,10 +137,18 @@ function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; in
         </Select>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2"><Label>Сумма, ₸</Label><Input type="number" inputMode="decimal" value={initial} onChange={(e) => setInitial(e.target.value)} /></div>
-        <div className="space-y-2"><Label>Платёж/мес, ₸</Label><Input type="number" inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} /></div>
+        <div className="space-y-2"><Label>Сумма, ₸</Label><MoneyInput value={initial} onValueChange={setInitial} placeholder="2 000 000" /></div>
+        <div className="space-y-2"><Label>Платёж/мес, ₸</Label><MoneyInput value={monthly} onValueChange={setMonthly} placeholder="80 000" /></div>
       </div>
-      <div className="space-y-2"><Label>Ставка, %</Label><Input type="number" inputMode="decimal" value={rate} onChange={(e) => setRate(e.target.value)} /></div>
+      <div className="space-y-2"><Label>Банк</Label>
+        <Select value={bank} onValueChange={setBank}>
+          <SelectTrigger><SelectValue placeholder="Выбери банк" /></SelectTrigger>
+          <SelectContent>
+            {banks.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Добавить/удалить банк можно в Настройках.</p>
+      </div>
       <Button type="submit" className="w-full">Создать</Button>
     </form>
   );
