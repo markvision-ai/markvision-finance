@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CategoryManager } from "@/components/finance/CategoryManager";
 import { BankManager } from "@/components/finance/BankManager";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ChevronRight, Tags, Wallet, Landmark } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/settings")({ component: SettingsPage });
 
@@ -65,10 +67,41 @@ function SettingsPage() {
           </div>
           <Button className="mt-3" onClick={() => save.mutate()} disabled={save.isPending}>Сохранить</Button>
         </section>
-        <CategoryManager kind="expense" title="Категории расходов" />
-        <CategoryManager kind="income" title="Категории доходов" />
-        <BankManager />
+        <section className="rounded-2xl border border-border bg-card/60 p-5">
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">Справочники</h2>
+          <div className="grid gap-2">
+            <SheetRow icon={<Tags size={16} />} label="Категории расходов">
+              <CategoryManager kind="expense" title="Категории расходов" />
+            </SheetRow>
+            <SheetRow icon={<Wallet size={16} />} label="Категории доходов">
+              <CategoryManager kind="income" title="Категории доходов" />
+            </SheetRow>
+            <SheetRow icon={<Landmark size={16} />} label="Банки">
+              <BankManager />
+            </SheetRow>
+          </div>
+        </section>
       </div>
     </div>
+  );
+}
+
+function SheetRow({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <button className="flex w-full items-center gap-3 rounded-xl border border-border bg-background/40 px-4 py-3 text-left text-sm hover:bg-accent/40">
+          <span className="text-muted-foreground">{icon}</span>
+          <span className="flex-1">{label}</span>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </button>
+      </SheetTrigger>
+      <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{label}</SheetTitle>
+        </SheetHeader>
+        <div className="mt-4">{children}</div>
+      </SheetContent>
+    </Sheet>
   );
 }

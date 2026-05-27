@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/finance/DateTimePicker";
 
 export const Route = createFileRoute("/_authenticated/tasks")({ component: TasksPage });
 
@@ -121,12 +122,12 @@ function TaskForm({ onSubmit }: { onSubmit: (v: { title: string; description: st
       onSubmit={(e) => {
         e.preventDefault();
         if (!title.trim()) return;
-        onSubmit({ title: title.trim(), description, starts_at: when ? new Date(when).toISOString() : null });
+        onSubmit({ title: title.trim(), description, starts_at: when || null });
       }}
       className="space-y-4"
     >
       <div className="space-y-2"><Label>Название</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Встреча с клиентом" autoFocus /></div>
-      <div className="space-y-2"><Label>Когда</Label><Input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} /></div>
+      <div className="space-y-2"><Label>Когда</Label><DateTimePicker value={when} onChange={setWhen} placeholder="Выбери дату и время" /></div>
       <div className="space-y-2"><Label>Описание</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} /></div>
       <Button type="submit" className="w-full">Создать</Button>
     </form>
