@@ -1,13 +1,15 @@
-const fmtMoney = (currency = "RUB") =>
-  new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 0,
-  });
+const symbols: Record<string, string> = {
+  KZT: "₸",
+  RUB: "₽",
+  USD: "$",
+  EUR: "€",
+};
 
-export function money(amount: number | string | null | undefined, currency = "RUB") {
+export function money(amount: number | string | null | undefined, currency = "KZT") {
   const n = typeof amount === "string" ? Number(amount) : amount ?? 0;
-  return fmtMoney(currency).format(n);
+  const formatted = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n);
+  const sym = symbols[currency] ?? currency;
+  return `${formatted} ${sym}`;
 }
 
 export function num(amount: number | string | null | undefined) {
