@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { importEventsAsTasks } from "@/lib/google-calendar.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthGate,
@@ -13,6 +15,7 @@ function AuthGate() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const importGcal = useServerFn(importEventsAsTasks);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -25,6 +28,15 @@ function AuthGate() {
   // reflects new data instantly.
   useEffect(() => {
     if (!user) return;
+    // Auto-sync Google Calendar → tasks on session start so the app reflects
+    // every event from the calendar, not only manually-added ones.
+    importGcal({ data: { days: 30 } })
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ["tasks"] });
+        qc.invalidateQueries({ queryKey: ["today-tasks"] });
+        qc.invalidateQueries({ queryKey: ["gcal", "today"] });
+      })
+      .catch((e) => console.warn("gcal auto-sync failed", e));
     const channel = supabase
       .channel(`rt-${user.id}`)
       .on(
