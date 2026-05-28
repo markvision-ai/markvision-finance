@@ -34,6 +34,7 @@ function IncomesPage() {
         .limit(200);
       return (data as any[]) ?? [];
     },
+    staleTime: 60_000,
   });
   const total = incomes.reduce((s: number, i: any) => s + Number(i.amount), 0);
   const add = useMutation({

@@ -36,6 +36,7 @@ function ExpensesPage() {
         .limit(200);
       return (data as any[]) ?? [];
     },
+    staleTime: 60_000,
   });
 
   const { data: cats = [] } = useQuery({
@@ -44,6 +45,7 @@ function ExpensesPage() {
       const { data } = await supabase.from("expense_categories").select("*").order("name");
       return (data as any[]) ?? [];
     },
+    staleTime: 300_000,
   });
 
   const total = expenses.reduce((s, e) => s + Number(e.amount), 0);
