@@ -179,6 +179,51 @@ function DebtsPage() {
         <StatCard label="Платёж/мес" value={money(monthly)} />
       </div>
 
+      {(overdueNow.length > 0 || latePaid.length > 0) && (
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <StatCard
+            label="Сейчас просрочено"
+            value={overdueNow.length === 0 ? "—" : `${overdueNow.length} · ${overdueDaysNow} дн.`}
+            tone={overdueNow.length > 0 ? "danger" : undefined}
+          />
+          <StatCard
+            label="История просрочек"
+            value={latePaid.length === 0 ? "—" : `${latePaid.length} · ${latePaidDays} дн.`}
+          />
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-4 sm:p-5">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+            <BellRing size={16} className="text-primary" />
+            Предстоящие платежи
+            <span className="ml-auto text-xs text-muted-foreground">{pending.length}</span>
+          </div>
+          <div className="space-y-2">
+            {pending.map((r: any) => {
+              const d = debtById[r.debt_id];
+              const due = parseISO(r.due_date);
+              const diff = differenceInCalendarDays(today, due);
+              const overdue = diff > 0;
+              return (
+                <ReminderRow
+                  key={r.id}
+                  reminder={r}
+                  debt={d}
+                  due={due}
+                  diff={diff}
+                  overdue={overdue}
+                  onPay={(amount) => markPaid.mutate({ reminder: r, amount })}
+                  onDismiss={() => dismiss.mutate(r.id)}
+                  busy={markPaid.isPending}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {active.length > 0 && (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <Breakdown
