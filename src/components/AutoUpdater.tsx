@@ -1,6 +1,17 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const LAST_CHECK_KEY = "markvision:last-update-check";
+const LAST_RELOAD_KEY = "markvision:last-update-reload";
+
+const readStoredTime = (key: string) => {
+  if (typeof window === "undefined") return 0;
+  const value = window.localStorage.getItem(key);
+  const parsed = value ? Number(value) : 0;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 /**
  * Detects when a new version of the app has been deployed and auto-reloads.
  * Works for PWA installs (iOS "Add to Home Screen") where the HTML shell
@@ -29,6 +40,14 @@ export function AutoUpdater() {
 
     const check = async () => {
       if (reloadingRef.current) return;
+      const now = Date.now();
+      const lastReload = readStoredTime(LAST_RELOAD_KEY);
+      if (lastReload && now - lastReload < ONE_DAY_MS) return;
+
+      const lastCheck = readStoredTime(LAST_CHECK_KEY);
+      if (lastCheck && now - lastCheck < ONE_DAY_MS) return;
+      window.localStorage.setItem(LAST_CHECK_KEY, String(now));
+
       try {
         const res = await fetch("/", {
           cache: "no-store",
@@ -43,6 +62,7 @@ export function AutoUpdater() {
           next !== initialFingerprint.current
         ) {
           reloadingRef.current = true;
+          window.localStorage.setItem(LAST_RELOAD_KEY, String(now));
           toast.success("Доступно обновление", {
             description: "Перезагружаем приложение…",
             duration: 1500,
@@ -56,17 +76,17 @@ export function AutoUpdater() {
       }
     };
 
-    // Check on focus / visibility (key for PWAs reopened from home screen)
+    // Check on focus / visibility, but hard-limited to once per day.
     const onVisible = () => {
       if (document.visibilityState === "visible") void check();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", check);
 
-    // Also poll every 2 minutes while open
-    const interval = window.setInterval(check, 2 * 60 * 1000);
+    // Also poll once per day while open.
+    const interval = window.setInterval(check, ONE_DAY_MS);
 
-    // First check shortly after mount
+    // First check shortly after mount, respecting the daily throttle.
     const initial = window.setTimeout(check, 5000);
 
     return () => {
