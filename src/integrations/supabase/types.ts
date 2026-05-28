@@ -564,6 +564,19 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          last_sign_in_at: string
+          roles: string[]
+          telegram_chat_id: number
+          telegram_username: string
+        }[]
+      }
       ensure_debt_reminders: { Args: never; Returns: undefined }
       get_user_by_chat_id: { Args: { p_chat_id: number }; Returns: string }
       get_user_by_username: { Args: { p_username: string }; Returns: string }
