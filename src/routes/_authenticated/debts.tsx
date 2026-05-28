@@ -326,6 +326,12 @@ function DebtsPage() {
                   <span>Погашено {Math.round(p)}% · {money(paid, d.currency)}</span>
                   <span>{monthsLeft != null ? `≈ ${monthsLeft} мес. до закрытия` : "Укажи платёж"}</span>
                 </div>
+                <div className="mt-3 flex justify-end">
+                  <EditBalanceButton
+                    debt={d}
+                    onSave={(balance) => updateBalance.mutate({ id: d.id, balance })}
+                  />
+                </div>
               </div>
             );
           })
@@ -337,6 +343,67 @@ function DebtsPage() {
 
 function kindLabel(k: string) {
   return ({ loan: "Кредит", mortgage: "Ипотека", card: "Кредитка", personal: "Долг" } as Record<string, string>)[k] ?? k;
+}
+
+function ReminderRow({ reminder, debt, due, diff, overdue, onPay, onDismiss, busy }: {
+  reminder: any; debt: any; due: Date; diff: number; overdue: boolean;
+  onPay: (amount: number) => void; onDismiss: () => void; busy: boolean;
+}) {
+  const [amount, setAmount] = useState(String(reminder.expected_amount ?? debt?.monthly_payment ?? ""));
+  return (
+    <div className={cn(
+      "flex flex-col gap-3 rounded-xl border bg-card/60 p-3 sm:flex-row sm:items-center",
+      overdue ? "border-destructive/40" : "border-border"
+    )}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          {overdue && <AlertTriangle size={14} className="text-destructive" />}
+          <span className="truncate">{debt?.name ?? "Кредит"}</span>
+          {debt?.description && <span className="text-xs text-muted-foreground">· {debt.description}</span>}
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {format(due, "d MMMM yyyy", { locale: ru })}
+          {overdue && <span className="ml-2 text-destructive">просрочка {diff} дн.</span>}
+          {!overdue && diff === 0 && <span className="ml-2 text-primary">сегодня</span>}
+          {!overdue && diff < 0 && <span className="ml-2">через {Math.abs(diff)} дн.</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-32">
+          <MoneyInput value={amount} onValueChange={setAmount} placeholder={String(reminder.expected_amount)} />
+        </div>
+        <Button size="sm" disabled={busy || !Number(amount)} onClick={() => onPay(Number(amount))}>
+          <Check size={14} /> Оплатил
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onDismiss} title="Скрыть">×</Button>
+      </div>
+    </div>
+  );
+}
+
+function EditBalanceButton({ debt, onSave }: { debt: any; onSave: (balance: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState(String(debt.current_balance ?? ""));
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setVal(String(debt.current_balance ?? "")); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm"><Pencil size={14} /> Изменить остаток</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Остаток по «{debt.name}»</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Текущий остаток, {debt.currency || "₸"}</Label>
+            <MoneyInput value={val} onValueChange={setVal} autoFocus />
+            <p className="text-xs text-muted-foreground">Введи фактический остаток, если что-то не сошлось.</p>
+          </div>
+          <Button className="w-full" disabled={val === "" || isNaN(Number(val))} onClick={() => { onSave(Number(val)); setOpen(false); }}>
+            Сохранить
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string; pay_date: Date | null }) => void }) {
