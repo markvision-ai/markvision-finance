@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedRatingRouteImport } from './routes/_authenticated/rating'
 import { Route as AuthenticatedIncomesRouteImport } from './routes/_authenticated/incomes'
 import { Route as AuthenticatedGoalsRouteImport } from './routes/_authenticated/goals'
 import { Route as AuthenticatedExpensesRouteImport } from './routes/_authenticated/expenses'
@@ -55,6 +56,11 @@ const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedRatingRoute = AuthenticatedRatingRouteImport.update({
+  id: '/rating',
+  path: '/rating',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedIncomesRoute = AuthenticatedIncomesRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/incomes': typeof AuthenticatedIncomesRoute
+  '/rating': typeof AuthenticatedRatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/expenses': typeof AuthenticatedExpensesRoute
   '/goals': typeof AuthenticatedGoalsRoute
   '/incomes': typeof AuthenticatedIncomesRoute
+  '/rating': typeof AuthenticatedRatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
   '/': typeof AuthenticatedIndexRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_authenticated/expenses': typeof AuthenticatedExpensesRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
   '/_authenticated/incomes': typeof AuthenticatedIncomesRoute
+  '/_authenticated/rating': typeof AuthenticatedRatingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/goals'
     | '/incomes'
+    | '/rating'
     | '/settings'
     | '/tasks'
     | '/api/public/bot/close-task'
@@ -259,6 +269,7 @@ export interface FileRouteTypes {
     | '/expenses'
     | '/goals'
     | '/incomes'
+    | '/rating'
     | '/settings'
     | '/tasks'
     | '/'
@@ -284,6 +295,7 @@ export interface FileRouteTypes {
     | '/_authenticated/expenses'
     | '/_authenticated/goals'
     | '/_authenticated/incomes'
+    | '/_authenticated/rating'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
     | '/_authenticated/'
@@ -357,6 +369,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/rating': {
+      id: '/_authenticated/rating'
+      path: '/rating'
+      fullPath: '/rating'
+      preLoaderRoute: typeof AuthenticatedRatingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/incomes': {
@@ -493,6 +512,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedExpensesRoute: typeof AuthenticatedExpensesRoute
   AuthenticatedGoalsRoute: typeof AuthenticatedGoalsRoute
   AuthenticatedIncomesRoute: typeof AuthenticatedIncomesRoute
+  AuthenticatedRatingRoute: typeof AuthenticatedRatingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -503,6 +523,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedExpensesRoute: AuthenticatedExpensesRoute,
   AuthenticatedGoalsRoute: AuthenticatedGoalsRoute,
   AuthenticatedIncomesRoute: AuthenticatedIncomesRoute,
+  AuthenticatedRatingRoute: AuthenticatedRatingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
