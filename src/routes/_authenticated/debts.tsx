@@ -41,9 +41,77 @@ function DebtsPage() {
     },
     staleTime: 60_000,
   });
+  const { data: reminders = [] } = useQuery({
+    queryKey: ["debt_reminders"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("debt_reminders" as any)
+        .select("*")
+        .order("due_date", { ascending: true });
+      return (data as any[]) ?? [];
+    },
+    staleTime: 60_000,
+  });
   const active = debts.filter((d: any) => !d.is_closed);
   const remaining = active.reduce((s: number, d: any) => s + Number(d.current_balance), 0);
   const monthly = active.reduce((s: number, d: any) => s + Number(d.monthly_payment ?? 0), 0);
+  const debtById = useMemo(() => Object.fromEntries(debts.map((d: any) => [d.id, d])), [debts]);
+  const today = useMemo(() => { const t = new Date(); t.setHours(0,0,0,0); return t; }, []);
+  const pending = useMemo(() => reminders.filter((r: any) => !r.paid_at && !r.dismissed_at && parseISO(r.due_date) <= addMonths(today, 1)), [reminders, today]);
+  const overdueNow = pending.filter((r: any) => parseISO(r.due_date) < today);
+  const overdueDaysNow = overdueNow.reduce((s: number, r: any) => s + Math.max(0, differenceInCalendarDays(today, parseISO(r.due_date))), 0);
+  const latePaid = reminders.filter((r: any) => r.paid_at && differenceInCalendarDays(parseISO(r.paid_at), parseISO(r.due_date)) > 0);
+  const latePaidDays = latePaid.reduce((s: number, r: any) => s + Math.max(0, differenceInCalendarDays(parseISO(r.paid_at), parseISO(r.due_date))), 0);
+
+  const markPaid = useMutation({
+    mutationFn: async (v: { reminder: any; amount: number }) => {
+      const { reminder, amount } = v;
+      const debt = debtById[reminder.debt_id];
+      const { data: payment, error: payErr } = await supabase
+        .from("debt_payments" as any)
+        .insert({
+          user_id: user!.id,
+          debt_id: reminder.debt_id,
+          amount,
+          paid_at: new Date().toISOString(),
+          source: "reminder",
+          raw_text: `Платёж по «${debt?.name ?? "кредит"}» за ${format(parseISO(reminder.due_date), "d MMM yyyy", { locale: ru })}`,
+        })
+        .select("id")
+        .single();
+      if (payErr) throw payErr;
+      const { error } = await supabase
+        .from("debt_reminders" as any)
+        .update({ paid_at: new Date().toISOString(), paid_amount: amount, payment_id: (payment as any).id })
+        .eq("id", reminder.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["debt_reminders"] });
+      qc.invalidateQueries({ queryKey: ["debts"] });
+      toast.success("Платёж зафиксирован");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const dismiss = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("debt_reminders" as any).update({ dismissed_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["debt_reminders"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateBalance = useMutation({
+    mutationFn: async (v: { id: string; balance: number }) => {
+      const { error } = await supabase.from("debts" as any).update({ current_balance: v.balance, updated_at: new Date().toISOString() }).eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Остаток обновлён"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const add = useMutation({
     mutationFn: async (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string; pay_date: Date | null }) => {
       const { error } = await supabase.from("debts" as any).insert({
