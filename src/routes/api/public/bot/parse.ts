@@ -14,7 +14,8 @@ export const Route = createFileRoute("/api/public/bot/parse")({
           const out = await callAiJSON<{ intent: string; payload: Record<string, unknown> }>({
             system:
               "Распарси сообщение пользователя в одно из намерений: expense, income, debt_payment, goal_contribution, create_debt, create_goal, task, todo, close_task, reschedule_task, status_query, cancel, unknown. " +
-              "В payload положи распарсенные поля (amount как число в рублях, name, hint, date в ISO и т.д.).",
+              "В payload положи распарсенные поля: amount (число), description (краткое описание), category_name (категория одним-двумя словами на русском, например 'Кредит', 'Еда', 'Транспорт', 'Зарплата', 'Фриланс'), client_name, name, hint, date в ISO и т.д. " +
+              "Категорию ВСЕГДА определяй из контекста сообщения, даже если пользователь явно её не назвал. Для платежей по кредитам/займам используй category_name='Кредит'.",
             user: text,
             schemaName: "parse_message",
             schema: {

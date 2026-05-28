@@ -368,7 +368,15 @@ export type Database = {
           source?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "incomes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "income_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
