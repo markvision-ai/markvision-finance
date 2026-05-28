@@ -13,8 +13,8 @@ type Filter = "overdue" | "today" | "tomorrow" | "week" | "nodate";
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "today", label: "Сегодня" },
   { key: "tomorrow", label: "Завтра" },
-  { key: "week", label: "Эта неделя" },
-  { key: "overdue", label: "Просрочено" },
+  { key: "week", label: "Неделя" },
+  { key: "overdue", label: "Долги" },
   { key: "nodate", label: "Без даты" },
 ];
 
@@ -90,7 +90,7 @@ export function TodayTasks() {
         </Link>
       </div>
 
-      <div className="mb-3 grid grid-cols-4 gap-1.5">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const n = counts[f.key];
@@ -100,14 +100,14 @@ export function TodayTasks() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={cn(
-                "flex min-w-0 items-center justify-center gap-1 rounded-full border px-2 py-1.5 text-[11px] leading-none transition-colors sm:text-xs",
+                "flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs leading-none transition-colors",
                 active
                   ? "border-primary bg-primary/15 text-primary"
                   : "border-border bg-background/40 text-muted-foreground hover:text-foreground",
                 isOverdue && !active && "border-destructive/40 text-destructive"
               )}
             >
-              <span className="truncate">{f.label}</span>
+              <span>{f.label}</span>
               {n > 0 && (
                 <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
                   active ? "bg-primary/20" : isOverdue ? "bg-destructive/15" : "bg-muted")}>
