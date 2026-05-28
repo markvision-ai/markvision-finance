@@ -1,120 +1,72 @@
-# План: серверная часть для Telegram-бота
 
-Бот (n8n / отдельный сервис) будет дергать наши эндпоинты вместо самописных SQL. Вся логика, валидация, AI-резолверы и отправка сообщений в Telegram — на нашей стороне.
+# Раздел «Рейтинг» — новый вид и новая логика
 
-## 1. Инфраструктура
+Сейчас страница выглядит как набор плоских карточек с одной полосой прогресса. Сделаем её ярче, информативнее и геймифицированной — чтобы было видно прогресс, уровень, серии и слабые места.
 
-- Подключить коннектор **Telegram** (`standard_connectors--connect`) — нужен `TELEGRAM_API_KEY` для отправки ответов и уведомлений.
-- Убедиться, что включён Lovable AI Gateway (`LOVABLE_API_KEY` уже есть) — используем `google/gemini-2.5-flash` для парсинга текста и резолва сущностей.
-- Общий секрет `BOT_SHARED_SECRET` (HMAC) — бот подписывает каждый запрос, мы проверяем подпись. Добавим через `secrets--add_secret`.
-- Хелперы в `src/lib/bot/`:
-  - `verify-signature.ts` — проверка HMAC.
-  - `resolve-user.ts` — `chat_id → user_id` через существующую `get_user_by_chat_id`.
-  - `ai.ts` — обёртка над AI Gateway с JSON-схемами.
-  - `tg.ts` — `sendMessage` через connector gateway.
+## Дизайн
 
-## 2. Эндпоинты `/api/public/bot/*` (TanStack server routes)
+**Hero-блок (главный экран рейтинга)**
+- Большой круговой индикатор (SVG-кольцо) со счётом 0–100 в центре, плавная анимация заполнения.
+- Слева от кольца — уровень («Эталон / Огонь / В строю / …»), бейдж-«ранг» с иконкой, подпись и динамика (▲ +6 за неделю).
+- Справа — мини-блок «Серия»: сколько дней подряд закрываешь задачи без просрочек (streak с иконкой огня).
+- Фон карточки — мягкий градиент из `--primary` → `--primary-glow`, тонкий glow-shadow, скруглённые углы, лёгкая «стеклянная» подложка.
 
-Каждый: POST, HMAC-проверка, Zod-валидация, резолв user_id, понятный JSON-ответ + опционально текст для отправки в чат.
+**Сетка KPI (компактнее и осмысленнее)**
+- 4 карточки в ряд вместо 6 громоздких: Всего · Выполнено · Просрочено · Вовремя %.
+- На каждой карточке мини-спарклайн (recharts) по последним 14 дням.
+- Цвет акцентов по тону (success / danger / primary), иконки сохраняем.
 
-**Красный блок ТЗ (закрывает 100%):**
+**График активности**
+- Heatmap-«календарь» за последние 8 недель (как у GitHub-контрибуций): клетка = день, насыщенность = сколько задач закрыто. Tooltip с датой и числом.
 
-| Route | Что делает |
-|---|---|
-| `POST /api/public/bot/parse` | Универсальный AI-парсер: принимает `{chat_id, text}` → возвращает `{intent, payload}` (expense / income / debt_payment / goal_contribution / create_debt / create_goal / task / todo / close_task / reschedule_task / status_query). Бот сам решает, какой следующий эндпоинт дернуть, либо вызывает `/execute`. |
-| `POST /api/public/bot/execute` | Принимает `{chat_id, intent, payload}` → выполняет соответствующий INSERT/UPDATE, возвращает текст для ответа. Внутри маршрутизирует на хелперы ниже. |
-| `POST /api/public/bot/income` | INSERT в `incomes` (amount, client_name, category_id?, received_at). AI-категоризация по описанию. |
-| `POST /api/public/bot/debt-payment` | AI-резолвер: текст «по ипотеке 30к» → выбирает `debt_id` из активных `debts` пользователя по эмбеддингу/нечёткому совпадению. INSERT в `debt_payments` (триггер сам уменьшит остаток). |
-| `POST /api/public/bot/goal-contribution` | AI-резолвер цели → INSERT в `goal_contributions` (триггер обновит `current_amount`). |
-| `POST /api/public/bot/create-debt` | Парсит «новый кредит на машину 1.8млн на 5 лет» → INSERT в `debts` (kind, name, initial_amount, current_balance, monthly_payment, end_date). |
-| `POST /api/public/bot/create-goal` | «цель квартира 5млн к декабрю 2027» → INSERT в `goals`. |
+**Дисциплина**
+- Заменяем две полосы на сегментированный bar: вовремя / с опозданием / отменено / просрочено — один цветной стек на всю ширину, под ним легенда с числами и %.
+- Рядом — «Среднее опоздание» в днях и «Самая длинная серия без просрочек».
 
-**Жёлтый блок (удобство):**
+**Достижения**
+- Полоска бейджей-ачивок: «Первая сотня задач», «7 дней подряд», «Без просрочек неделю», «Закрыл 10 за день». Полученные — цветные, остальные — приглушённые с прогрессом.
 
-| Route | Что делает |
-|---|---|
-| `POST /api/public/bot/close-task` | AI находит `tasks.id` по описанию → `UPDATE status='done'`. |
-| `POST /api/public/bot/reschedule-task` | Находит задачу, парсит новую дату → `UPDATE starts_at/ends_at`. (GCal patch — позже, если будет интеграция.) |
-| `POST /api/public/bot/status-query` | «сколько потратил сегодня», «остаток по ипотеке», «сколько до цели X» → SQL агрегаты → текстовый ответ. |
+**Стиль**
+- Используем существующие токены из `src/styles.css` (`--primary`, `--primary-glow`, `--success`, `--destructive`, `--card`, `--muted`). Никаких хардкод-цветов.
+- Анимации появления (framer-motion уже подходит по стилистике): fade+rise для карточек, count-up для чисел, draw для кольца.
+- Адаптив: на мобиле hero перестраивается в столбец, KPI 2×2, heatmap скроллится горизонтально.
 
-**Cron-эндпоинты (тоже под `/api/public/bot/`):**
+## Функционал
 
-| Route | Расписание | Что делает |
-|---|---|---|
-| `POST /api/public/bot/cron/weekly-report` | Вс 19:00 (`0 19 * * 0`) | По каждому `telegram_users` собирает: расходы/доходы за неделю, % бюджета по категориям, прогресс целей → шлёт в TG. |
-| `POST /api/public/bot/cron/payment-reminders` | Ежедневно 10:00 (`0 10 * * *`) | Находит `debts` с `monthly_payment` и датой платежа в окне -3 дня → шлёт «не забудь внести 25000 по ипотеке». |
-| `POST /api/public/bot/cron/anomaly-alerts` | Ежечасно (`0 * * * *`) | Сравнивает сегодняшние траты по категории со средним за 30 дней; если >2× — шлёт алерт. |
+**Расчёт счёта (улучшение текущей формулы)**
+- База: `onTime*1 + late*0.6 − cancelled*0.4 − overdue*0.6`, нормировка к 100.
+- Добавляем бонус за серию: `+min(10, streakDays/2)`.
+- Добавляем штраф за «висящие» просрочки > 7 дней.
+- Δ за неделю: сравниваем со счётом 7 дней назад → стрелка тренда.
 
-Cron заводится через `pg_cron` + `pg_net` с `apikey` заголовком (анонимный ключ) — миграция отдельно.
+**Новые метрики (считаются на клиенте из тех же `tasks`)**
+- `streakDays` — текущая серия дней без просрочек и с хотя бы одной закрытой задачей.
+- `bestStreak` — лучшая серия.
+- `avgLateDays` — среднее опоздание по поздним задачам.
+- `last14` — массив {date, done} для спарклайнов и heatmap (8 недель = 56 дней).
+- `disciplineMix` — {onTime, late, cancelled, overdue} для сегмент-бара.
+- `achievements` — список из 6 ачивок с порогами и текущим прогрессом.
 
-**Зелёный блок (по желанию, во вторую очередь):**
+**Фильтр периода**
+- Переключатель сверху: «Неделя · Месяц · Всё время». Пересчитывает все метрики и графики.
 
-- `POST /api/public/bot/receipt` — принимает URL фото из Telegram, Gemini Vision парсит сумму/категорию/дату → INSERT в `expenses`. Реализуем после красного/жёлтого.
-- Повторяющиеся задачи и подключение банка — оставляем за рамками первой итерации (банковский webhook требует отдельных партнёрств).
+**Данные**
+- Источник тот же — `supabase.from("tasks").select(...)`, лимит подняли до 2000. Доп. полей не требуется, миграция не нужна.
+- Всё считается в `useMemo` — без новых запросов.
 
-## 3. AI-резолверы
+## Технические детали
 
-Один общий хелпер `resolveEntity({userId, kind, text})` в `src/lib/bot/resolve.ts`:
+Файлы:
+- `src/routes/_authenticated/rating.tsx` — переписать страницу: hero с кольцом, KPI-сетка, heatmap, дисциплина-стек, ачивки, period switcher.
+- `src/components/rating/ScoreRing.tsx` — SVG-кольцо со счётом и анимацией (новый).
+- `src/components/rating/Sparkline.tsx` — мини-график для KPI (новый, на recharts `<LineChart>`).
+- `src/components/rating/ActivityHeatmap.tsx` — сетка 7×N клеток с tooltip (новый).
+- `src/components/rating/DisciplineBar.tsx` — сегментированный стек (новый).
+- `src/components/rating/AchievementBadge.tsx` — бейдж ачивки (новый).
+- `src/lib/rating.ts` — чистые функции расчёта (`computeRatingStats`, `computeStreak`, `computeAchievements`) с типами; покрываем основные расчёты в одном месте.
 
-1. Тянет список активных сущностей пользователя (`debts`, `goals`, `tasks`).
-2. Передаёт в Gemini короткий JSON: `[{id, name, description}]` + запрос пользователя.
-3. Возвращает `{id, confidence}`. Если confidence < 0.6 — бот просит уточнить.
+Зависимости: `recharts`, `framer-motion`, `lucide-react` уже есть — ставить ничего не нужно.
 
-Для парсинга сумм («1.8млн», «30к», «25 000 ₽») — детерминированная функция `parseAmount.ts` (без AI, быстрее и предсказуемее).
+Дизайн-токены: при необходимости добавлю в `src/styles.css` `--gradient-rating` и `--shadow-rating` поверх существующих переменных, без поломки темы.
 
-## 4. Безопасность
-
-- HMAC SHA-256: `signature = hmac(BOT_SHARED_SECRET, timestamp + "." + body)`. Заголовки `x-bot-signature`, `x-bot-timestamp`. Окно ±5 мин.
-- Cron-эндпоинты проверяют `apikey === SUPABASE_ANON_KEY` (стандартный паттерн pg_cron).
-- Zod-валидация всех тел (`amount: number().positive().max(1e10)`, `text: string().max(2000)`).
-- Никаких PII в ответах cron-эндпоинтов — только то, что и так есть у владельца чата.
-- Используем `supabaseAdmin` внутри (бот ходит без пользовательской сессии), но всё фильтруется по `user_id`, полученному из `get_user_by_chat_id`.
-
-## 5. Структура файлов
-
-```
-src/
-├── routes/api/public/bot/
-│   ├── parse.ts
-│   ├── execute.ts
-│   ├── income.ts
-│   ├── debt-payment.ts
-│   ├── goal-contribution.ts
-│   ├── create-debt.ts
-│   ├── create-goal.ts
-│   ├── close-task.ts
-│   ├── reschedule-task.ts
-│   ├── status-query.ts
-│   └── cron/
-│       ├── weekly-report.ts
-│       ├── payment-reminders.ts
-│       └── anomaly-alerts.ts
-└── lib/bot/
-    ├── verify-signature.ts
-    ├── resolve-user.ts
-    ├── resolve.ts        # AI-резолвер сущностей
-    ├── parse-amount.ts
-    ├── ai.ts             # обёртка Lovable AI
-    └── tg.ts             # sendMessage через connector gateway
-```
-
-## 6. Миграция
-
-Одна миграция: включить `pg_cron` + `pg_net`, завести 3 cron-задачи на наши URL. Новых таблиц не нужно — схема уже всё покрывает.
-
-## 7. Очерёдность работ (после approve)
-
-1. Подключить Telegram connector + добавить `BOT_SHARED_SECRET`.
-2. Сделать хелперы (`verify-signature`, `resolve-user`, `ai`, `tg`, `parse-amount`, `resolve`).
-3. Эндпоинты красного блока (`income`, `debt-payment`, `goal-contribution`, `create-debt`, `create-goal`) + универсальные `parse` / `execute`.
-4. Эндпоинты жёлтого блока (`close-task`, `reschedule-task`, `status-query`).
-5. Cron-эндпоинты + миграция с pg_cron.
-6. Smoke-тест каждого через `invoke-server-function` (с валидной подписью).
-7. (Опционально) `receipt` с Vision.
-
-## Что остаётся за бортом первой итерации
-
-- Сам код n8n / Telegram-бота — он в другом репозитории, я только готовлю API.
-- Подключение Тинькофф/Сбер — нет публичного API трат для физлиц.
-- GCal patch при `reschedule-task` — добавим, когда подключим Google Calendar connector.
-- Multi-user/совместный бюджет — RLS позволяет, но нужен отдельный UX (приглашения, общий `household_id`).
+Бэкенд / схема БД / RLS — не трогаем.
