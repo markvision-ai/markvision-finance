@@ -1,5 +1,5 @@
 import { Link, useRouterState, Outlet, useNavigate } from "@tanstack/react-router";
-import { LogOut, MoreHorizontal } from "lucide-react";
+import { LogOut, MoreHorizontal, Shield } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useNavPrefs } from "@/hooks/use-nav-prefs";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { checkIsAdmin } from "@/lib/admin.functions";
 
 export function AppLayout() {
   const { user, signOut } = useAuth();
@@ -18,6 +21,15 @@ export function AppLayout() {
   const extraMobile = visible.slice(4);
 
   useRealtime(["expenses", "incomes", "tasks", "debt_payments", "goal_contributions", "goals", "debts"]);
+
+  const isAdminFn = useServerFn(checkIsAdmin);
+  const { data: adminCheck } = useQuery({
+    queryKey: ["is-admin", user?.id],
+    queryFn: () => isAdminFn(),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isAdmin = !!adminCheck?.isAdmin;
 
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   const moreActive = extraMobile.some((n) => isActive(n.to));
@@ -46,6 +58,20 @@ export function AppLayout() {
               {label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              to={"/admin" as any}
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                isActive("/admin")
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
+              <Shield size={18} />
+              Админка
+            </Link>
+          )}
         </nav>
         <div className="border-t border-border p-3">
           <div className="mb-2 truncate px-2 text-xs text-muted-foreground">{user?.email}</div>
