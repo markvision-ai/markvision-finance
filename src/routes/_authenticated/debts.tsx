@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Plus, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, CalendarIcon, ChevronLeft, ChevronRight, BellRing, Pencil, AlertTriangle, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, getDate } from "date-fns";
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, getDate, differenceInCalendarDays, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,9 +41,77 @@ function DebtsPage() {
     },
     staleTime: 60_000,
   });
+  const { data: reminders = [] } = useQuery({
+    queryKey: ["debt_reminders"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("debt_reminders" as any)
+        .select("*")
+        .order("due_date", { ascending: true });
+      return (data as any[]) ?? [];
+    },
+    staleTime: 60_000,
+  });
   const active = debts.filter((d: any) => !d.is_closed);
   const remaining = active.reduce((s: number, d: any) => s + Number(d.current_balance), 0);
   const monthly = active.reduce((s: number, d: any) => s + Number(d.monthly_payment ?? 0), 0);
+  const debtById = useMemo(() => Object.fromEntries(debts.map((d: any) => [d.id, d])), [debts]);
+  const today = useMemo(() => { const t = new Date(); t.setHours(0,0,0,0); return t; }, []);
+  const pending = useMemo(() => reminders.filter((r: any) => !r.paid_at && !r.dismissed_at && parseISO(r.due_date) <= addMonths(today, 1)), [reminders, today]);
+  const overdueNow = pending.filter((r: any) => parseISO(r.due_date) < today);
+  const overdueDaysNow = overdueNow.reduce((s: number, r: any) => s + Math.max(0, differenceInCalendarDays(today, parseISO(r.due_date))), 0);
+  const latePaid = reminders.filter((r: any) => r.paid_at && differenceInCalendarDays(parseISO(r.paid_at), parseISO(r.due_date)) > 0);
+  const latePaidDays = latePaid.reduce((s: number, r: any) => s + Math.max(0, differenceInCalendarDays(parseISO(r.paid_at), parseISO(r.due_date))), 0);
+
+  const markPaid = useMutation({
+    mutationFn: async (v: { reminder: any; amount: number }) => {
+      const { reminder, amount } = v;
+      const debt = debtById[reminder.debt_id];
+      const { data: payment, error: payErr } = await supabase
+        .from("debt_payments" as any)
+        .insert({
+          user_id: user!.id,
+          debt_id: reminder.debt_id,
+          amount,
+          paid_at: new Date().toISOString(),
+          source: "reminder",
+          raw_text: `Платёж по «${debt?.name ?? "кредит"}» за ${format(parseISO(reminder.due_date), "d MMM yyyy", { locale: ru })}`,
+        })
+        .select("id")
+        .single();
+      if (payErr) throw payErr;
+      const { error } = await supabase
+        .from("debt_reminders" as any)
+        .update({ paid_at: new Date().toISOString(), paid_amount: amount, payment_id: (payment as any).id })
+        .eq("id", reminder.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["debt_reminders"] });
+      qc.invalidateQueries({ queryKey: ["debts"] });
+      toast.success("Платёж зафиксирован");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const dismiss = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("debt_reminders" as any).update({ dismissed_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["debt_reminders"] }),
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const updateBalance = useMutation({
+    mutationFn: async (v: { id: string; balance: number }) => {
+      const { error } = await supabase.from("debts" as any).update({ current_balance: v.balance, updated_at: new Date().toISOString() }).eq("id", v.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Остаток обновлён"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const add = useMutation({
     mutationFn: async (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string; pay_date: Date | null }) => {
       const { error } = await supabase.from("debts" as any).insert({
@@ -110,6 +178,51 @@ function DebtsPage() {
         <StatCard label="Остаток" value={money(remaining)} tone="danger" />
         <StatCard label="Платёж/мес" value={money(monthly)} />
       </div>
+
+      {(overdueNow.length > 0 || latePaid.length > 0) && (
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <StatCard
+            label="Сейчас просрочено"
+            value={overdueNow.length === 0 ? "—" : `${overdueNow.length} · ${overdueDaysNow} дн.`}
+            tone={overdueNow.length > 0 ? "danger" : undefined}
+          />
+          <StatCard
+            label="История просрочек"
+            value={latePaid.length === 0 ? "—" : `${latePaid.length} · ${latePaidDays} дн.`}
+          />
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-4 sm:p-5">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+            <BellRing size={16} className="text-primary" />
+            Предстоящие платежи
+            <span className="ml-auto text-xs text-muted-foreground">{pending.length}</span>
+          </div>
+          <div className="space-y-2">
+            {pending.map((r: any) => {
+              const d = debtById[r.debt_id];
+              const due = parseISO(r.due_date);
+              const diff = differenceInCalendarDays(today, due);
+              const overdue = diff > 0;
+              return (
+                <ReminderRow
+                  key={r.id}
+                  reminder={r}
+                  debt={d}
+                  due={due}
+                  diff={diff}
+                  overdue={overdue}
+                  onPay={(amount) => markPaid.mutate({ reminder: r, amount })}
+                  onDismiss={() => dismiss.mutate(r.id)}
+                  busy={markPaid.isPending}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {active.length > 0 && (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -213,6 +326,12 @@ function DebtsPage() {
                   <span>Погашено {Math.round(p)}% · {money(paid, d.currency)}</span>
                   <span>{monthsLeft != null ? `≈ ${monthsLeft} мес. до закрытия` : "Укажи платёж"}</span>
                 </div>
+                <div className="mt-3 flex justify-end">
+                  <EditBalanceButton
+                    debt={d}
+                    onSave={(balance) => updateBalance.mutate({ id: d.id, balance })}
+                  />
+                </div>
               </div>
             );
           })
@@ -224,6 +343,67 @@ function DebtsPage() {
 
 function kindLabel(k: string) {
   return ({ loan: "Кредит", mortgage: "Ипотека", card: "Кредитка", personal: "Долг" } as Record<string, string>)[k] ?? k;
+}
+
+function ReminderRow({ reminder, debt, due, diff, overdue, onPay, onDismiss, busy }: {
+  reminder: any; debt: any; due: Date; diff: number; overdue: boolean;
+  onPay: (amount: number) => void; onDismiss: () => void; busy: boolean;
+}) {
+  const [amount, setAmount] = useState(String(reminder.expected_amount ?? debt?.monthly_payment ?? ""));
+  return (
+    <div className={cn(
+      "flex flex-col gap-3 rounded-xl border bg-card/60 p-3 sm:flex-row sm:items-center",
+      overdue ? "border-destructive/40" : "border-border"
+    )}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          {overdue && <AlertTriangle size={14} className="text-destructive" />}
+          <span className="truncate">{debt?.name ?? "Кредит"}</span>
+          {debt?.description && <span className="text-xs text-muted-foreground">· {debt.description}</span>}
+        </div>
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          {format(due, "d MMMM yyyy", { locale: ru })}
+          {overdue && <span className="ml-2 text-destructive">просрочка {diff} дн.</span>}
+          {!overdue && diff === 0 && <span className="ml-2 text-primary">сегодня</span>}
+          {!overdue && diff < 0 && <span className="ml-2">через {Math.abs(diff)} дн.</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-32">
+          <MoneyInput value={amount} onValueChange={setAmount} placeholder={String(reminder.expected_amount)} />
+        </div>
+        <Button size="sm" disabled={busy || !Number(amount)} onClick={() => onPay(Number(amount))}>
+          <Check size={14} /> Оплатил
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onDismiss} title="Скрыть">×</Button>
+      </div>
+    </div>
+  );
+}
+
+function EditBalanceButton({ debt, onSave }: { debt: any; onSave: (balance: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const [val, setVal] = useState(String(debt.current_balance ?? ""));
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setVal(String(debt.current_balance ?? "")); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm"><Pencil size={14} /> Изменить остаток</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Остаток по «{debt.name}»</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label>Текущий остаток, {debt.currency || "₸"}</Label>
+            <MoneyInput value={val} onValueChange={setVal} autoFocus />
+            <p className="text-xs text-muted-foreground">Введи фактический остаток, если что-то не сошлось.</p>
+          </div>
+          <Button className="w-full" disabled={val === "" || isNaN(Number(val))} onClick={() => { onSave(Number(val)); setOpen(false); }}>
+            Сохранить
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function DebtForm({ onSubmit }: { onSubmit: (v: { name: string; kind: string; initial_amount: number; monthly_payment: number; bank: string; pay_date: Date | null }) => void }) {
