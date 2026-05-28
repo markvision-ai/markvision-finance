@@ -179,24 +179,68 @@ function Dashboard() {
         <TodayCalendarEvents />
       </div>
 
-      <section className="mt-6 rounded-2xl border border-border bg-card/60 p-4 sm:mt-8 sm:p-5">
+      <section className="relative mt-6 overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-card/80 to-card/40 p-4 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.4)] backdrop-blur sm:mt-8 sm:p-5">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[oklch(0.62_0.20_277)/0.08] blur-3xl" />
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-muted-foreground">Cashflow · 12 месяцев</h2>
+          <div>
+            <h2 className="text-sm font-semibold tracking-tight">Cashflow</h2>
+            <p className="text-[11px] text-muted-foreground">Последние 12 месяцев</p>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[oklch(0.70_0.17_155)]" />Доходы
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-[oklch(0.62_0.22_25)]" />Расходы
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-0.5 w-3 rounded-full bg-[oklch(0.62_0.20_277)]" />Баланс
+            </span>
+          </div>
         </div>
         <div className="h-60 w-full sm:h-72">
           <ResponsiveContainer>
-            <ComposedChart data={chartData} margin={{ left: -16, right: 4, top: 8 }}>
-              <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="month" stroke="oklch(0.68 0.02 270)" fontSize={10} />
-              <YAxis stroke="oklch(0.68 0.02 270)" fontSize={11} tickFormatter={(v) => `${Math.round(v / 1000)}k`} />
+            <ComposedChart data={chartData} margin={{ left: -12, right: 8, top: 12, bottom: 0 }}>
+              <defs>
+                <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.78 0.18 155)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="oklch(0.55 0.16 155)" stopOpacity={0.85} />
+                </linearGradient>
+                <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="oklch(0.70 0.22 25)" stopOpacity={1} />
+                  <stop offset="100%" stopColor="oklch(0.50 0.20 25)" stopOpacity={0.85} />
+                </linearGradient>
+                <linearGradient id="balanceGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="oklch(0.70 0.20 277)" />
+                  <stop offset="100%" stopColor="oklch(0.78 0.18 200)" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="oklch(0.30 0.02 270)" strokeDasharray="2 4" opacity={0.4} vertical={false} />
+              <XAxis dataKey="month" stroke="oklch(0.60 0.02 270)" fontSize={10} tickLine={false} axisLine={false} dy={6} />
+              <YAxis stroke="oklch(0.60 0.02 270)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={40} />
               <Tooltip
-                contentStyle={{ background: "oklch(0.19 0.02 270)", border: "1px solid oklch(0.27 0.02 270)", borderRadius: 12 }}
+                cursor={{ fill: "oklch(0.30 0.02 270 / 0.25)", radius: 8 }}
+                contentStyle={{
+                  background: "oklch(0.16 0.02 270 / 0.95)",
+                  border: "1px solid oklch(0.30 0.02 270)",
+                  borderRadius: 12,
+                  boxShadow: "0 10px 30px -10px rgba(0,0,0,0.6)",
+                  fontSize: 12,
+                  padding: "8px 12px",
+                }}
+                labelStyle={{ color: "oklch(0.85 0.02 270)", fontWeight: 600, marginBottom: 4, textTransform: "capitalize" }}
                 formatter={(v: any) => money(Number(v))}
               />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="Доходы" fill="oklch(0.70 0.17 155)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="Расходы" fill="oklch(0.62 0.22 25)" radius={[6, 6, 0, 0]} />
-              <Line dataKey="Баланс" stroke="oklch(0.62 0.20 277)" strokeWidth={2} dot={false} />
+              <Bar dataKey="Доходы" fill="url(#incomeGrad)" radius={[8, 8, 0, 0]} maxBarSize={28} />
+              <Bar dataKey="Расходы" fill="url(#expenseGrad)" radius={[8, 8, 0, 0]} maxBarSize={28} />
+              <Line
+                dataKey="Баланс"
+                stroke="url(#balanceGrad)"
+                strokeWidth={2.5}
+                type="monotone"
+                dot={{ r: 3, fill: "oklch(0.16 0.02 270)", stroke: "oklch(0.70 0.20 277)", strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: "oklch(0.70 0.20 277)", stroke: "oklch(0.95 0.02 270)", strokeWidth: 2 }}
+              />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

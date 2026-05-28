@@ -122,8 +122,10 @@ export type Database = {
           interest_rate: number | null
           is_closed: boolean
           kind: string
+          last_payment_reminder_sent_at: string | null
           monthly_payment: number | null
           name: string
+          next_payment_date: string | null
           start_date: string | null
           updated_at: string
           user_id: string
@@ -140,8 +142,10 @@ export type Database = {
           interest_rate?: number | null
           is_closed?: boolean
           kind?: string
+          last_payment_reminder_sent_at?: string | null
           monthly_payment?: number | null
           name: string
+          next_payment_date?: string | null
           start_date?: string | null
           updated_at?: string
           user_id: string
@@ -158,8 +162,10 @@ export type Database = {
           interest_rate?: number | null
           is_closed?: boolean
           kind?: string
+          last_payment_reminder_sent_at?: string | null
           monthly_payment?: number | null
           name?: string
+          next_payment_date?: string | null
           start_date?: string | null
           updated_at?: string
           user_id?: string
