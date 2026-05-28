@@ -34,9 +34,7 @@ export function AutoUpdater() {
     };
 
     // Capture the fingerprint of the currently-loaded document
-    initialFingerprint.current = getFingerprintFromHtml(
-      document.documentElement.outerHTML,
-    );
+    initialFingerprint.current = getFingerprintFromHtml(document.documentElement.outerHTML);
 
     const check = async () => {
       if (reloadingRef.current) return;
@@ -56,11 +54,7 @@ export function AutoUpdater() {
         if (!res.ok) return;
         const html = await res.text();
         const next = getFingerprintFromHtml(html);
-        if (
-          next &&
-          initialFingerprint.current &&
-          next !== initialFingerprint.current
-        ) {
+        if (next && initialFingerprint.current && next !== initialFingerprint.current) {
           reloadingRef.current = true;
           window.localStorage.setItem(LAST_RELOAD_KEY, String(now));
           toast.success("Доступно обновление", {
