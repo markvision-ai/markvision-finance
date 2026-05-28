@@ -55,6 +55,60 @@ export type Database = {
           },
         ]
       }
+      debt_reminders: {
+        Row: {
+          created_at: string
+          debt_id: string
+          dismissed_at: string | null
+          due_date: string
+          expected_amount: number
+          id: string
+          paid_amount: number | null
+          paid_at: string | null
+          payment_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debt_id: string
+          dismissed_at?: string | null
+          due_date: string
+          expected_amount: number
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debt_id?: string
+          dismissed_at?: string | null
+          due_date?: string
+          expected_amount?: number
+          id?: string
+          paid_amount?: number | null
+          paid_at?: string | null
+          payment_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debt_reminders_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "debts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debt_reminders_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "debt_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       debts: {
         Row: {
           closed_at: string | null
@@ -483,6 +537,7 @@ export type Database = {
       }
     }
     Functions: {
+      ensure_debt_reminders: { Args: never; Returns: undefined }
       get_user_by_chat_id: { Args: { p_chat_id: number }; Returns: string }
     }
     Enums: {
