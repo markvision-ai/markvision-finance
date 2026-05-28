@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import { Home, TrendingDown, TrendingUp, Target, Landmark, CheckSquare, Settings } from "lucide-react";
+import { Home, TrendingDown, TrendingUp, Target, Landmark, CheckSquare, Trophy, Settings } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export type NavKey = "home" | "expenses" | "incomes" | "goals" | "debts" | "tasks" | "settings";
+export type NavKey = "home" | "expenses" | "incomes" | "goals" | "debts" | "tasks" | "rating" | "settings";
 
 export type NavItem = {
   key: NavKey;
@@ -18,6 +18,7 @@ export const ALL_NAV: NavItem[] = [
   { key: "goals", to: "/goals", label: "Цели", icon: Target },
   { key: "debts", to: "/debts", label: "Кредиты", icon: Landmark },
   { key: "tasks", to: "/tasks", label: "Задачи", icon: CheckSquare },
+  { key: "rating", to: "/rating", label: "Рейтинг", icon: Trophy },
   { key: "settings", to: "/settings", label: "Настройки", icon: Settings },
 ];
 
