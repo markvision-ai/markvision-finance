@@ -3,7 +3,7 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Wallet, Landmark, ChevronLeft, ChevronRight, CalendarIcon } from "lucide-react";
-import { startOfMonth, endOfMonth, subMonths, addMonths, format, isSameMonth } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, addMonths, format, isSameMonth, eachDayOfInterval } from "date-fns";
 import { ru } from "date-fns/locale";
 import {
   ResponsiveContainer,
@@ -88,14 +88,29 @@ function Dashboard() {
   const isLoading = staticQ.isLoading || (monthQ.isLoading && !monthQ.data);
 
   const chartData = useMemo(() => {
-    return (data?.monthlyBalance ?? []).map((r: any) => ({
-      month: format(new Date(r.month), "LLL", { locale: ru }),
-      _date: new Date(r.month),
-      Доходы: Number(r.income_total),
-      Расходы: Number(r.expense_total),
-      Баланс: Number(r.balance),
-    }));
-  }, [data]);
+    const days = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) });
+    const byDay: Record<string, { Доходы: number; Расходы: number }> = {};
+    for (const d of days) byDay[format(d, "yyyy-MM-dd")] = { Доходы: 0, Расходы: 0 };
+    for (const i of data.monthIncomes) {
+      const k = format(new Date(i.received_at), "yyyy-MM-dd");
+      if (byDay[k]) byDay[k].Доходы += Number(i.amount);
+    }
+    for (const e of data.monthExpenses) {
+      const k = format(new Date(e.occurred_at), "yyyy-MM-dd");
+      if (byDay[k]) byDay[k].Расходы += Number(e.amount);
+    }
+    let running = 0;
+    return days.map((d) => {
+      const k = format(d, "yyyy-MM-dd");
+      running += byDay[k].Доходы - byDay[k].Расходы;
+      return {
+        day: format(d, "d"),
+        Доходы: byDay[k].Доходы,
+        Расходы: byDay[k].Расходы,
+        Баланс: running,
+      };
+    });
+  }, [data, month]);
 
   const expTotal = data.monthExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
   const incTotal = data.monthIncomes.reduce((s: number, i: any) => s + Number(i.amount), 0);
@@ -184,7 +199,7 @@ function Dashboard() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-sm font-semibold tracking-tight">Cashflow</h2>
-            <p className="text-[11px] text-muted-foreground">Последние 12 месяцев</p>
+            <p className="text-[11px] text-muted-foreground capitalize">{monthLabel} · по дням</p>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
@@ -216,7 +231,7 @@ function Dashboard() {
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="oklch(0.30 0.02 270)" strokeDasharray="2 4" opacity={0.4} vertical={false} />
-              <XAxis dataKey="month" stroke="oklch(0.60 0.02 270)" fontSize={10} tickLine={false} axisLine={false} dy={6} />
+              <XAxis dataKey="day" stroke="oklch(0.60 0.02 270)" fontSize={10} tickLine={false} axisLine={false} dy={6} interval="preserveStartEnd" minTickGap={12} />
               <YAxis stroke="oklch(0.60 0.02 270)" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 1000)}k`} width={40} />
               <Tooltip
                 cursor={{ fill: "oklch(0.30 0.02 270 / 0.25)", radius: 8 }}
