@@ -42,6 +42,7 @@ function TasksPage() {
         .order("created_at", { ascending: false });
       return (data as any[]) ?? [];
     },
+    staleTime: 30_000,
   });
   const toggle = useMutation({
     mutationFn: async (t: any) => {
