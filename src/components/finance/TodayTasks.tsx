@@ -90,7 +90,7 @@ export function TodayTasks() {
         </Link>
       </div>
 
-      <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1">
+      <div className="mb-3 grid grid-cols-4 gap-1.5">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const n = counts[f.key];
@@ -100,16 +100,16 @@ export function TodayTasks() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={cn(
-                "shrink-0 rounded-full border px-3 py-1.5 text-xs transition-colors",
+                "flex min-w-0 items-center justify-center gap-1 rounded-full border px-2 py-1.5 text-[11px] leading-none transition-colors sm:text-xs",
                 active
                   ? "border-primary bg-primary/15 text-primary"
                   : "border-border bg-background/40 text-muted-foreground hover:text-foreground",
                 isOverdue && !active && "border-destructive/40 text-destructive"
               )}
             >
-              {f.label}
+              <span className="truncate">{f.label}</span>
               {n > 0 && (
-                <span className={cn("ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
+                <span className={cn("shrink-0 rounded-full px-1.5 py-0.5 text-[10px] tabular-nums",
                   active ? "bg-primary/20" : isOverdue ? "bg-destructive/15" : "bg-muted")}>
                   {n}
                 </span>
