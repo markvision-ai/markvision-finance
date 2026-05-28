@@ -1,16 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { Trophy, CheckCircle2, XCircle, Clock, AlertTriangle, Flame } from "lucide-react";
+import { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { Flame, TrendingUp, TrendingDown, Minus, CheckCircle2, AlertTriangle, ListChecks, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/finance/PageHeader";
-import { StatCard } from "@/components/finance/StatCard";
 import { EmptyState } from "@/components/finance/EmptyState";
 import { cn } from "@/lib/utils";
+import { computeRatingStats, computeAchievements, type Period, type TaskRow } from "@/lib/rating";
+import { ScoreRing } from "@/components/rating/ScoreRing";
+import { Sparkline } from "@/components/rating/Sparkline";
+import { ActivityHeatmap } from "@/components/rating/ActivityHeatmap";
+import { DisciplineBar } from "@/components/rating/DisciplineBar";
+import { AchievementBadge } from "@/components/rating/AchievementBadge";
 
 export const Route = createFileRoute("/_authenticated/rating")({ component: RatingPage });
 
+const PERIODS: { id: Period; label: string }[] = [
+  { id: "week", label: "Неделя" },
+  { id: "month", label: "Месяц" },
+  { id: "all", label: "Всё время" },
+];
+
 function RatingPage() {
+  const [period, setPeriod] = useState<Period>("month");
+
   const { data: tasks = [] } = useQuery({
     queryKey: ["task-stats"],
     queryFn: async () => {
@@ -18,113 +32,216 @@ function RatingPage() {
         .from("tasks")
         .select("id, status, starts_at, updated_at, created_at")
         .limit(2000);
-      return (data as any[]) ?? [];
+      return (data as TaskRow[]) ?? [];
     },
     staleTime: 30_000,
   });
 
-  const s = useMemo(() => {
-    const now = new Date();
-    const total = tasks.length;
-    let done = 0, cancelled = 0, pending = 0, overdue = 0, onTime = 0, late = 0;
-    let lateDaysTotal = 0;
-    for (const t of tasks) {
-      if (t.status === "done") {
-        done++;
-        if (t.starts_at) {
-          const due = new Date(t.starts_at);
-          const finished = new Date(t.updated_at ?? t.created_at);
-          if (finished.getTime() <= due.getTime() + 24 * 3600 * 1000) onTime++;
-          else {
-            late++;
-            lateDaysTotal += Math.max(1, Math.floor((finished.getTime() - due.getTime()) / 86_400_000));
-          }
-        } else {
-          onTime++;
-        }
-      } else if (t.status === "cancelled") {
-        cancelled++;
-      } else {
-        pending++;
-        if (t.starts_at && new Date(t.starts_at) < now) overdue++;
-      }
-    }
-    // Score: 100 if you do everything on time, drops for late/cancelled/overdue
-    const base = onTime * 1 + late * 0.6 - cancelled * 0.4 - overdue * 0.6;
-    const score = total === 0 ? 0 : Math.max(0, Math.min(100, Math.round((base / total) * 100)));
-    const completionRate = total === 0 ? 0 : Math.round((done / total) * 100);
-    return { total, done, cancelled, pending, overdue, onTime, late, lateDaysTotal, score, completionRate };
-  }, [tasks]);
-
-  const level = s.score >= 90 ? "Эталон" : s.score >= 75 ? "Огонь" : s.score >= 50 ? "В строю" : s.score >= 25 ? "Подтягивайся" : "Старт";
-  const tone = s.score >= 75 ? "success" : s.score >= 50 ? undefined : "danger";
+  const s = useMemo(() => computeRatingStats(tasks, period), [tasks, period]);
+  const achievements = useMemo(() => computeAchievements(tasks, s), [tasks, s]);
 
   return (
     <div>
-      <PageHeader title="Рейтинг" subtitle="Как ты справляешься с задачами" />
+      <PageHeader
+        title="Рейтинг"
+        subtitle="Как ты справляешься с задачами"
+        action={
+          <div className="inline-flex rounded-full border border-border bg-card/60 p-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                  period === p.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {tasks.length === 0 ? (
         <EmptyState title="Пока пусто" description="Создай задачи — здесь появится твоя статистика." />
       ) : (
         <>
-          <div className="rounded-2xl border border-border bg-card/60 p-6">
-            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
-              <Trophy size={14} /> Рейтинг
-            </div>
-            <div className={cn("mt-2 font-mono text-5xl font-semibold tabular-nums",
-              tone === "success" && "text-success",
-              tone === "danger" && "text-destructive")}>
-              {s.score}
-              <span className="ml-2 text-xl text-muted-foreground">/100</span>
-            </div>
-            <div className="mt-1 text-sm text-muted-foreground">{level} · выполнено {s.completionRate}%</div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
-              <div className={cn("h-full rounded-full",
-                tone === "success" ? "bg-success" : tone === "danger" ? "bg-destructive" : "bg-primary")}
-                style={{ width: `${s.score}%` }} />
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-            <StatCard label="Всего задач" value={s.total} />
-            <StatCard label="Выполнено" value={s.done} tone="success" icon={<CheckCircle2 size={14} className="text-success" />} />
-            <StatCard label="Отменено" value={s.cancelled} icon={<XCircle size={14} className="text-muted-foreground" />} />
-            <StatCard label="В работе" value={s.pending} icon={<Clock size={14} className="text-primary" />} />
-            <StatCard label="Просрочено сейчас" value={s.overdue} tone={s.overdue > 0 ? "danger" : undefined} icon={<AlertTriangle size={14} />} />
-            <StatCard label="Вовремя" value={s.onTime} icon={<Flame size={14} className="text-primary" />} />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-border bg-card/60 p-5">
-            <div className="text-sm font-medium">Дисциплина</div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <Row label="Выполнено вовремя" value={s.onTime} total={Math.max(1, s.done)} tone="success" />
-              <Row label="Выполнено с опозданием" value={s.late} total={Math.max(1, s.done)} tone="danger" />
-            </div>
-            {s.late > 0 && (
-              <div className="mt-3 text-xs text-muted-foreground">
-                Суммарное опоздание: {s.lateDaysTotal} дн.
+          {/* HERO */}
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative overflow-hidden rounded-3xl border border-border bg-card/60 p-6 sm:p-8"
+            style={{
+              backgroundImage:
+                "radial-gradient(120% 80% at 100% 0%, color-mix(in oklab, var(--primary) 22%, transparent), transparent 60%), radial-gradient(80% 60% at 0% 100%, color-mix(in oklab, var(--primary) 12%, transparent), transparent 60%)",
+            }}
+          >
+            <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-center sm:justify-between">
+              <div className="order-2 flex-1 sm:order-1">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">Уровень</div>
+                <div className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">{s.level}</div>
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>выполнено {s.completionRate}%</span>
+                  <span>·</span>
+                  <TrendBadge value={s.trend} />
+                </div>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Chip icon={<Flame size={12} />} label={`Серия ${s.streak} дн.`} tone={s.streak > 0 ? "primary" : "muted"} />
+                  <Chip icon={<CheckCircle2 size={12} />} label={`Вовремя ${s.onTime}`} tone="success" />
+                  {s.overdue > 0 && <Chip icon={<AlertTriangle size={12} />} label={`Просрочено ${s.overdue}`} tone="danger" />}
+                </div>
               </div>
-            )}
+
+              <div className="order-1 sm:order-2">
+                <ScoreRing score={s.score} tone={s.tone} label={`${s.level}`} />
+              </div>
+
+              <div className="order-3 grid w-full grid-cols-2 gap-3 sm:w-auto sm:grid-cols-1">
+                <MiniStat label="Лучшая серия" value={`${s.bestStreak} дн.`} icon={<Flame size={14} />} />
+                <MiniStat label="Среднее опоздание" value={s.avgLateDays ? `${s.avgLateDays} дн.` : "—"} icon={<AlertTriangle size={14} />} />
+              </div>
+            </div>
+          </motion.section>
+
+          {/* KPI */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard label="Всего задач" value={s.total} icon={<ListChecks size={14} />} data={s.daily} color="var(--primary)" />
+            <KpiCard label="Выполнено" value={s.done} icon={<CheckCircle2 size={14} className="text-success" />} data={s.daily} color="var(--success)" />
+            <KpiCard label="Просрочено" value={s.overdue} icon={<AlertTriangle size={14} className="text-destructive" />} data={s.daily} color="var(--destructive)" tone={s.overdue > 0 ? "danger" : "default"} />
+            <KpiCard label="Вовремя %" value={`${s.done ? Math.round((s.onTime / s.done) * 100) : 0}%`} icon={<Target size={14} />} data={s.daily} color="var(--primary)" />
           </div>
+
+          {/* Activity heatmap */}
+          <section className="mt-6 rounded-3xl border border-border bg-card/60 p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium">Активность</div>
+                <div className="text-xs text-muted-foreground">Закрытые задачи за последние 8 недель</div>
+              </div>
+            </div>
+            <ActivityHeatmap data={s.daily} />
+          </section>
+
+          {/* Discipline */}
+          <section className="mt-6 rounded-3xl border border-border bg-card/60 p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium">Дисциплина</div>
+                <div className="text-xs text-muted-foreground">Структура всех задач за период</div>
+              </div>
+              {s.lateDaysTotal > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  Опоздание: <span className="font-mono tabular-nums">{s.lateDaysTotal}</span> дн.
+                </div>
+              )}
+            </div>
+            <DisciplineBar mix={s.disciplineMix} />
+          </section>
+
+          {/* Achievements */}
+          <section className="mt-6 rounded-3xl border border-border bg-card/60 p-5 sm:p-6">
+            <div className="mb-4">
+              <div className="text-sm font-medium">Достижения</div>
+              <div className="text-xs text-muted-foreground">Геймификация: что уже взято, что в работе</div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {achievements.map((a) => (
+                <AchievementBadge key={a.id} a={a} />
+              ))}
+            </div>
+          </section>
         </>
       )}
     </div>
   );
 }
 
-function Row({ label, value, total, tone }: { label: string; value: number; total: number; tone?: "success" | "danger" }) {
-  const pct = Math.round((value / total) * 100);
+function TrendBadge({ value }: { value: number }) {
+  if (value === 0)
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground">
+        <Minus size={12} /> без изменений
+      </span>
+    );
+  const up = value > 0;
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono tabular-nums">{value} · {pct}%</span>
+    <span className={cn("inline-flex items-center gap-1 font-mono tabular-nums", up ? "text-success" : "text-destructive")}>
+      {up ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+      {up ? "+" : ""}
+      {value}
+    </span>
+  );
+}
+
+function Chip({ icon, label, tone = "muted" }: { icon: React.ReactNode; label: string; tone?: "primary" | "success" | "danger" | "muted" }) {
+  const cls =
+    tone === "primary"
+      ? "border-primary/40 bg-primary/15 text-foreground"
+      : tone === "success"
+      ? "border-success/40 bg-success/10 text-success"
+      : tone === "danger"
+      ? "border-destructive/40 bg-destructive/10 text-destructive"
+      : "border-border bg-muted/40 text-muted-foreground";
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs", cls)}>
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+function MiniStat({ label, value, icon }: { label: string; value: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border bg-background/40 p-3 backdrop-blur">
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        {icon}
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-        <div className={cn("h-full rounded-full",
-          tone === "success" ? "bg-success" : tone === "danger" ? "bg-destructive" : "bg-primary")}
-          style={{ width: `${pct}%` }} />
-      </div>
+      <div className="mt-1 font-mono text-lg font-semibold tabular-nums">{value}</div>
     </div>
+  );
+}
+
+function KpiCard({
+  label,
+  value,
+  icon,
+  data,
+  color,
+  tone = "default",
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ReactNode;
+  data: { date: string; done: number }[];
+  color: string;
+  tone?: "default" | "danger" | "success";
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="rounded-2xl border border-border bg-card/60 p-4 backdrop-blur"
+    >
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
+        <span>{label}</span>
+        {icon}
+      </div>
+      <div
+        className={cn(
+          "mt-2 whitespace-nowrap font-mono text-2xl font-semibold tabular-nums",
+          tone === "danger" && "text-destructive",
+          tone === "success" && "text-success"
+        )}
+      >
+        {value}
+      </div>
+      <div className="mt-2 -mx-1">
+        <Sparkline data={data.slice(-14)} color={color} />
+      </div>
+    </motion.div>
   );
 }
