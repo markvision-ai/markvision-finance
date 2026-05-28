@@ -31,7 +31,7 @@ export function CashflowChart({ data }: { data: CashflowPoint[] }) {
               padding: "8px 12px",
             }}
             labelStyle={{ color: "var(--foreground)", fontWeight: 600, marginBottom: 4 }}
-            formatter={(v: any, name: string) => [money(Number(v)), name === "income" ? "Доходы" : name === "expense" ? "Расходы" : "Баланс"]}
+            formatter={(v, name) => [money(Number(v)), name === "income" ? "Доходы" : name === "expense" ? "Расходы" : "Баланс"]}
           />
           <Bar dataKey="income" fill="url(#incomeGrad)" radius={[6, 6, 0, 0]} maxBarSize={22} />
           <Bar dataKey="expense" fill="url(#expenseGrad)" radius={[6, 6, 0, 0]} maxBarSize={22} />
