@@ -22,7 +22,7 @@ export function StatCard({
       </div>
       <div
         className={cn(
-          "mt-3 font-mono text-3xl font-semibold tabular-nums tracking-tight",
+          "mt-3 whitespace-nowrap font-mono text-[clamp(1.25rem,6.5vw,1.875rem)] font-semibold tabular-nums tracking-tight",
           tone === "success" && "text-success",
           tone === "danger" && "text-destructive"
         )}
