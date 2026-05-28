@@ -39,6 +39,7 @@ function DebtsPage() {
       const { data } = await supabase.from("debts" as any).select("*").order("is_closed").order("created_at", { ascending: false });
       return (data as any[]) ?? [];
     },
+    staleTime: 60_000,
   });
   const active = debts.filter((d: any) => !d.is_closed);
   const remaining = active.reduce((s: number, d: any) => s + Number(d.current_balance), 0);

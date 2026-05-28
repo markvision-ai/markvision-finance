@@ -66,12 +66,55 @@ function AuthGate() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "debts", filter: `user_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["debts"] }),
+        () => {
+          qc.invalidateQueries({ queryKey: ["debts"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "goals", filter: `user_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: ["goals"] }),
+        () => {
+          qc.invalidateQueries({ queryKey: ["goals"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "debt_payments", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["debts"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "goal_contributions", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["goals"] });
+          qc.invalidateQueries({ queryKey: ["dashboard"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "expense_categories", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["expense_categories"] });
+          qc.invalidateQueries({ queryKey: ["expenses"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "income_categories", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["income_categories"] });
+          qc.invalidateQueries({ queryKey: ["incomes"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "telegram_users", filter: `user_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: ["telegram_users"] }),
       )
       .subscribe();
     return () => {

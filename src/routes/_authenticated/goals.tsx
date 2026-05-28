@@ -27,6 +27,7 @@ function GoalsPage() {
       const { data } = await supabase.from("goals").select("*").eq("is_archived", false).order("created_at", { ascending: false });
       return (data as any[]) ?? [];
     },
+    staleTime: 60_000,
   });
   const add = useMutation({
     mutationFn: async (vals: { name: string; target_amount: number; current_amount: number; target_date: string | null }) => {
