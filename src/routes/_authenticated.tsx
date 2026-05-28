@@ -116,6 +116,14 @@ function AuthGate() {
         { event: "*", schema: "public", table: "telegram_users", filter: `user_id=eq.${user.id}` },
         () => qc.invalidateQueries({ queryKey: ["telegram_users"] }),
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "debt_reminders", filter: `user_id=eq.${user.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["debt_reminders"] });
+          qc.invalidateQueries({ queryKey: ["debts"] });
+        },
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
