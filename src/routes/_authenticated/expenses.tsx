@@ -128,13 +128,15 @@ function ExpensesPage() {
             {expenses.map((e: any) => (
               <li key={e.id} className="group flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2 text-sm min-w-0">
+                  <div className="flex items-center gap-2 text-sm min-w-0">
                     {e.expense_categories?.color && (
-                      <span className="inline-block h-2 w-2 shrink-0 translate-y-[-1px] rounded-full" style={{ background: e.expense_categories.color }} />
+                      <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: e.expense_categories.color }} />
                     )}
-                    <span className="font-medium shrink-0">{e.expense_categories?.name ?? "Без категории"}</span>
-                    {e.description && <span className="truncate text-muted-foreground">· {e.description}</span>}
+                    <span className="font-medium truncate">{e.expense_categories?.name ?? "Без категории"}</span>
                   </div>
+                  {e.description && (
+                    <div className="mt-0.5 text-sm text-muted-foreground break-words">{e.description}</div>
+                  )}
                   <div className="mt-0.5 text-xs text-muted-foreground">{format(new Date(e.occurred_at), "d MMM yyyy, HH:mm", { locale: ru })}</div>
                 </div>
                 <div className="flex items-center gap-3">
