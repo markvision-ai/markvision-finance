@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/finance/DateTimePicker";
+import { TaskDetailDialog } from "@/components/finance/TaskDetailDialog";
+import { cn } from "@/lib/utils";
 import {
   syncTaskToCalendar,
   deleteCalendarEvent,
@@ -28,6 +30,7 @@ function TasksPage() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [openTask, setOpenTask] = useState<any | null>(null);
   const syncFn = useServerFn(syncTaskToCalendar);
   const deleteEventFn = useServerFn(deleteCalendarEvent);
   const importFn = useServerFn(importEventsAsTasks);
@@ -149,23 +152,24 @@ function TasksPage() {
         <ul className="space-y-2">
           {tasks.map((t: any) => (
             <li key={t.id} className="group flex items-center gap-3 rounded-xl border border-border bg-card/60 p-4">
-              <Button size="icon" variant={t.status === "done" ? "default" : "outline"} onClick={() => toggle.mutate(t)} aria-label="Отметить выполненной">
+              <Button size="icon" variant={t.status === "done" ? "default" : "outline"} onClick={(e) => { e.stopPropagation(); toggle.mutate(t); }} aria-label="Отметить выполненной">
                 <Check size={14} />
               </Button>
-              <div className="min-w-0 flex-1">
-                <div className={`text-sm ${t.status === "done" ? "text-muted-foreground line-through" : ""}`}>{t.title}</div>
+              <button type="button" onClick={() => setOpenTask(t)} className="min-w-0 flex-1 text-left">
+                <div className={cn("text-sm", t.status === "done" && "text-muted-foreground line-through", t.status === "cancelled" && "text-muted-foreground line-through opacity-60")}>{t.title}</div>
                 {t.starts_at && (
                   <div className="text-xs text-muted-foreground">{format(new Date(t.starts_at), "d MMM, HH:mm", { locale: ru })}</div>
                 )}
                 {t.description && <div className="mt-1 text-xs text-muted-foreground">{t.description}</div>}
-              </div>
-              <Button size="icon" variant="ghost" onClick={() => del.mutate(t)} className="opacity-60 md:opacity-0 md:group-hover:opacity-100" aria-label="Удалить">
+              </button>
+              <Button size="icon" variant="ghost" onClick={(e) => { e.stopPropagation(); del.mutate(t); }} className="opacity-60 md:opacity-0 md:group-hover:opacity-100" aria-label="Удалить">
                 <Trash2 size={14} />
               </Button>
             </li>
           ))}
         </ul>
       )}
+      <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
     </div>
   );
 }

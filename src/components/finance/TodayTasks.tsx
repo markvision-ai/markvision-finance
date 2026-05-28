@@ -7,6 +7,7 @@ import { ru } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { TaskDetailDialog } from "@/components/finance/TaskDetailDialog";
 
 type Filter = "overdue" | "today" | "tomorrow" | "week" | "nodate";
 
@@ -21,14 +22,16 @@ const FILTERS: { key: Filter; label: string }[] = [
 export function TodayTasks() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<Filter>("today");
+  const [openTask, setOpenTask] = useState<any | null>(null);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", "dashboard"],
     queryFn: async () => {
       const { data } = await supabase
         .from("tasks")
-        .select("id, title, starts_at, status")
+        .select("id, title, description, starts_at, status, google_event_id")
         .neq("status", "done")
+        .neq("status", "cancelled")
         .order("starts_at", { ascending: true, nullsFirst: false })
         .limit(50);
       return (data as any[]) ?? [];
@@ -137,12 +140,12 @@ export function TodayTasks() {
                 size="icon"
                 variant="outline"
                 className="h-8 w-8 shrink-0"
-                onClick={() => toggle.mutate(t.id)}
+                onClick={(e) => { e.stopPropagation(); toggle.mutate(t.id); }}
                 aria-label="Выполнено"
               >
                 <Check size={14} />
               </Button>
-              <div className="min-w-0 flex-1">
+              <button type="button" onClick={() => setOpenTask(t)} className="min-w-0 flex-1 text-left">
                 <div className="truncate text-sm">{t.title}</div>
                 {t.starts_at && (
                   <div className={cn("flex items-center gap-1 text-xs",
@@ -151,7 +154,7 @@ export function TodayTasks() {
                     {format(new Date(t.starts_at), "d MMM, HH:mm", { locale: ru })}
                   </div>
                 )}
-              </div>
+              </button>
             </li>
           );
         })}
@@ -163,6 +166,7 @@ export function TodayTasks() {
           </li>
         )}
       </ul>
+      <TaskDetailDialog task={openTask} open={!!openTask} onOpenChange={(v) => !v && setOpenTask(null)} />
     </section>
   );
 }
