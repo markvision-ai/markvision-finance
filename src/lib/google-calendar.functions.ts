@@ -5,6 +5,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const GATEWAY_URL =
   "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 
+const DEFAULT_TIMEZONE = "Asia/Almaty";
+
 function getAuthHeaders() {
   const LOVABLE_API_KEY = process.env.LOVABLE_API_KEY;
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -53,8 +55,8 @@ function toEventBody(input: {
   return {
     summary: input.title,
     description: input.description ?? undefined,
-    start: { dateTime: start.toISOString() },
-    end: { dateTime: end.toISOString() },
+    start: { dateTime: start.toISOString(), timeZone: DEFAULT_TIMEZONE },
+    end: { dateTime: end.toISOString(), timeZone: DEFAULT_TIMEZONE },
     reminders: { useDefault: true },
   };
 }
@@ -240,8 +242,8 @@ export const createDebtReminder = createServerFn({ method: "POST" })
     const body: any = {
       summary: data.title,
       description: data.description,
-      start: { dateTime: start.toISOString() },
-      end: { dateTime: end.toISOString() },
+      start: { dateTime: start.toISOString(), timeZone: DEFAULT_TIMEZONE },
+      end: { dateTime: end.toISOString(), timeZone: DEFAULT_TIMEZONE },
       reminders: {
         useDefault: false,
         overrides: [
