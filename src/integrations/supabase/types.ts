@@ -499,6 +499,9 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          link_code: string | null
+          link_code_expires_at: string | null
+          linked_at: string | null
           telegram_chat_id: number | null
           user_id: string
           username: string | null
@@ -506,6 +509,9 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          link_code?: string | null
+          link_code_expires_at?: string | null
+          linked_at?: string | null
           telegram_chat_id?: number | null
           user_id: string
           username?: string | null
@@ -513,6 +519,9 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          link_code?: string | null
+          link_code_expires_at?: string | null
+          linked_at?: string | null
           telegram_chat_id?: number | null
           user_id?: string
           username?: string | null
@@ -578,6 +587,8 @@ export type Database = {
         }[]
       }
       ensure_debt_reminders: { Args: never; Returns: undefined }
+      gen_link_code: { Args: never; Returns: string }
+      get_or_create_link_code: { Args: never; Returns: string }
       get_user_by_chat_id: { Args: { p_chat_id: number }; Returns: string }
       get_user_by_username: { Args: { p_username: string }; Returns: string }
       has_role: {
@@ -591,6 +602,12 @@ export type Database = {
         Args: { p_chat_id: number; p_username: string }
         Returns: string
       }
+      link_telegram: {
+        Args: { p_chat_id: number; p_link_code: string; p_username: string }
+        Returns: Json
+      }
+      resolve_user_by_chat: { Args: { p_chat_id: number }; Returns: Json }
+      unlink_telegram: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
