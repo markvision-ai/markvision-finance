@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Plus, CalendarIcon, ChevronLeft, ChevronRight, BellRing, Pencil, AlertTriangle, Check } from "lucide-react";
+import {
+  Plus, CalendarIcon, ChevronLeft, ChevronRight, BellRing, Pencil,
+  AlertTriangle, Check, Trash2, MoreVertical, Wallet, Building2, CreditCard, Home, User,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, getDate, differenceInCalendarDays, parseISO } from "date-fns";
@@ -24,6 +27,16 @@ import { MoneyInput } from "@/components/finance/MoneyInput";
 import { useBanks } from "@/hooks/use-banks";
 import { Breakdown } from "@/components/finance/Breakdown";
 import { createDebtReminder } from "@/lib/google-calendar.functions";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/debts")({ component: DebtsPage });
 
@@ -33,6 +46,7 @@ function DebtsPage() {
   const [open, setOpen] = useState(false);
   const reminderFn = useServerFn(createDebtReminder);
   const [cursor, setCursor] = useState(startOfMonth(new Date()));
+  const [filter, setFilter] = useState<"active" | "closed" | "all">("active");
   const { data: debts = [] } = useQuery({
     queryKey: ["debts"],
     queryFn: async () => {
@@ -105,10 +119,32 @@ function DebtsPage() {
 
   const updateBalance = useMutation({
     mutationFn: async (v: { id: string; balance: number }) => {
-      const { error } = await supabase.from("debts" as any).update({ current_balance: v.balance, updated_at: new Date().toISOString() }).eq("id", v.id);
+      // is_closed/closed_at синхронизируется триггером БД sync_debt_closed_state
+      const { error } = await supabase
+        .from("debts" as any)
+        .update({ current_balance: v.balance, updated_at: new Date().toISOString() })
+        .eq("id", v.id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Остаток обновлён"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const delDebt = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("debts" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); qc.invalidateQueries({ queryKey: ["debt_reminders"] }); toast.success("Кредит удалён"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const closeDebt = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("debts" as any).update({ current_balance: 0, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["debts"] }); toast.success("Кредит закрыт"); },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -157,6 +193,13 @@ function DebtsPage() {
     return map;
   }, [active]);
   const leadingBlanks = (getDay(startOfMonth(cursor)) + 6) % 7; // Mon-first
+
+  const visibleDebts = useMemo(() => {
+    if (filter === "active") return debts.filter((d: any) => !d.is_closed);
+    if (filter === "closed") return debts.filter((d: any) => d.is_closed);
+    return debts;
+  }, [debts, filter]);
+  const closedCount = debts.length - active.length;
 
   return (
     <div>
@@ -294,48 +337,37 @@ function DebtsPage() {
         </div>
       )}
 
-      <div className="mt-6 space-y-3">
-        {debts.length === 0 ? (
-          <EmptyState title="Кредитов нет" description="Нажми «Добавить» — укажи сумму и платёж." />
-        ) : (
-          debts.map((d: any) => {
-            const paid = Number(d.initial_amount) - Number(d.current_balance);
-            const p = d.initial_amount ? (paid / Number(d.initial_amount)) * 100 : 0;
-            const left = Number(d.current_balance);
-            const monthsLeft = d.monthly_payment ? Math.ceil(left / Number(d.monthly_payment)) : null;
-            const payDay = d.start_date ? Number(d.start_date.slice(8, 10)) : null;
-            return (
-              <div key={d.id} className="rounded-2xl border border-border bg-card/60 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-base font-medium">{d.name}{d.is_closed && <span className="ml-2 text-xs text-success">закрыт</span>}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {kindLabel(d.kind)}{d.description ? ` · ${d.description}` : ""} · платёж {money(d.monthly_payment ?? 0, d.currency)}
-                      {payDay ? ` · ${payDay} числа` : ""}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-lg tabular-nums">{money(d.current_balance, d.currency)}</div>
-                    <div className="text-xs text-muted-foreground">из {money(d.initial_amount, d.currency)}</div>
-                  </div>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-success" style={{ width: `${Math.min(100, p)}%` }} />
-                </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Погашено {Math.round(p)}% · {money(paid, d.currency)}</span>
-                  <span>{monthsLeft != null ? `≈ ${monthsLeft} мес. до закрытия` : "Укажи платёж"}</span>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <EditBalanceButton
-                    debt={d}
-                    onSave={(balance) => updateBalance.mutate({ id: d.id, balance })}
-                  />
-                </div>
-              </div>
-            );
-          })
-        )}
+      <div className="mt-6">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
+            <TabsList>
+              <TabsTrigger value="active">Активные <span className="ml-1.5 text-[10px] text-muted-foreground">{active.length}</span></TabsTrigger>
+              <TabsTrigger value="closed">Закрытые <span className="ml-1.5 text-[10px] text-muted-foreground">{closedCount}</span></TabsTrigger>
+              <TabsTrigger value="all">Все <span className="ml-1.5 text-[10px] text-muted-foreground">{debts.length}</span></TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        <div className="space-y-3">
+          {debts.length === 0 ? (
+            <EmptyState title="Кредитов нет" description="Нажми «Добавить» — укажи сумму и платёж." />
+          ) : visibleDebts.length === 0 ? (
+            <EmptyState
+              title={filter === "closed" ? "Закрытых ещё нет" : "Активных кредитов нет"}
+              description={filter === "closed" ? "Здесь появятся погашенные кредиты." : "Поздравляем — всё чисто 🎉"}
+            />
+          ) : (
+            visibleDebts.map((d: any) => (
+              <DebtCard
+                key={d.id}
+                debt={d}
+                today={today}
+                onEditBalance={(balance) => updateBalance.mutate({ id: d.id, balance })}
+                onClose={() => closeDebt.mutate(d.id)}
+                onDelete={() => delDebt.mutate(d.id)}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
@@ -343,6 +375,165 @@ function DebtsPage() {
 
 function kindLabel(k: string) {
   return ({ loan: "Кредит", mortgage: "Ипотека", card: "Кредитка", personal: "Долг" } as Record<string, string>)[k] ?? k;
+}
+
+function kindIcon(k: string) {
+  const map: Record<string, any> = {
+    loan: Wallet,
+    mortgage: Home,
+    card: CreditCard,
+    personal: User,
+  };
+  return map[k] ?? Wallet;
+}
+
+function nextPayDate(d: any, today: Date): Date | null {
+  if (!d.start_date) return null;
+  const startDay = Number(d.start_date.slice(8, 10));
+  const base = new Date(today.getFullYear(), today.getMonth(), Math.min(startDay, 28));
+  if (base < today) return new Date(today.getFullYear(), today.getMonth() + 1, Math.min(startDay, 28));
+  return base;
+}
+
+function DebtCard({ debt: d, today, onEditBalance, onClose, onDelete }: {
+  debt: any; today: Date;
+  onEditBalance: (v: number) => void;
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  const paid = Number(d.initial_amount) - Number(d.current_balance);
+  const p = d.initial_amount ? Math.max(0, Math.min(100, (paid / Number(d.initial_amount)) * 100)) : 0;
+  const left = Number(d.current_balance);
+  const monthsLeft = d.monthly_payment ? Math.ceil(left / Number(d.monthly_payment)) : null;
+  const Icon = kindIcon(d.kind);
+  const closed = !!d.is_closed;
+  const next = !closed ? nextPayDate(d, today) : null;
+  const daysToNext = next ? differenceInCalendarDays(next, today) : null;
+  const due = daysToNext != null && daysToNext <= 3 && daysToNext >= 0;
+  const [editOpen, setEditOpen] = useState(false);
+  const [val, setVal] = useState(String(d.current_balance ?? ""));
+  const [confirmDel, setConfirmDel] = useState(false);
+
+  return (
+    <div className={cn(
+      "group relative overflow-hidden rounded-2xl border bg-card/60 p-5 transition-colors",
+      closed ? "border-border/60 opacity-80" : "border-border hover:border-primary/40",
+      due && "border-primary/50"
+    )}>
+      {/* accent bar */}
+      <div className={cn(
+        "absolute inset-y-0 left-0 w-1",
+        closed ? "bg-success/60" : due ? "bg-primary" : "bg-primary/30"
+      )} />
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+            closed ? "bg-success/15 text-success" : "bg-primary/15 text-primary"
+          )}>
+            <Icon size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="truncate text-base font-medium">{d.name}</div>
+              {closed ? (
+                <Badge variant="secondary" className="bg-success/15 text-success">Закрыт</Badge>
+              ) : due ? (
+                <Badge className="bg-primary/15 text-primary hover:bg-primary/20">
+                  {daysToNext === 0 ? "сегодня" : `через ${daysToNext} дн.`}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><Building2 size={11} />{d.description ?? "Без банка"}</span>
+              <span>·</span>
+              <span>{kindLabel(d.kind)}</span>
+              {d.monthly_payment ? (<><span>·</span><span>{money(d.monthly_payment, d.currency)}/мес</span></>) : null}
+              {next ? (<><span>·</span><span>{format(next, "d MMM", { locale: ru })}</span></>) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            <div className="font-mono text-lg tabular-nums leading-none">{money(d.current_balance, d.currency)}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">из {money(d.initial_amount, d.currency)}</div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8 opacity-60 group-hover:opacity-100"><MoreVertical size={16} /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setEditOpen(true); }}>
+                <Pencil size={14} /> Изменить остаток
+              </DropdownMenuItem>
+              {!closed && (
+                <DropdownMenuItem onSelect={onClose}>
+                  <Check size={14} /> Отметить закрытым
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={(e) => { e.preventDefault(); setConfirmDel(true); }}
+              >
+                <Trash2 size={14} /> Удалить
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full transition-all", closed ? "bg-success" : "bg-gradient-to-r from-primary/80 to-primary")}
+          style={{ width: `${p}%` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Погашено <span className="font-medium text-foreground">{Math.round(p)}%</span> · {money(paid, d.currency)}</span>
+        <span className="text-muted-foreground">
+          {closed ? "Кредит закрыт"
+            : monthsLeft != null ? <>≈ <span className="font-medium text-foreground">{monthsLeft}</span> мес. до закрытия</>
+            : "Укажи платёж"}
+        </span>
+      </div>
+
+      {/* Edit balance dialog */}
+      <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (o) setVal(String(d.current_balance ?? "")); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Остаток по «{d.name}»</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Текущий остаток, {d.currency || "₸"}</Label>
+              <MoneyInput value={val} onValueChange={setVal} autoFocus />
+              <p className="text-xs text-muted-foreground">Поставь 0, чтобы закрыть кредит.</p>
+            </div>
+            <Button className="w-full" disabled={val === "" || isNaN(Number(val))} onClick={() => { onEditBalance(Number(val)); setEditOpen(false); }}>
+              Сохранить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirm */}
+      <AlertDialog open={confirmDel} onOpenChange={setConfirmDel}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить «{d.name}»?</AlertDialogTitle>
+            <AlertDialogDescription>
+              История платежей по этому кредиту также будет удалена. Действие необратимо.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Удалить</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 }
 
 function ReminderRow({ reminder, debt, due, diff, overdue, onPay, onDismiss, busy }: {
