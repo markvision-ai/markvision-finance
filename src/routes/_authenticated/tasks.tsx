@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { format, isToday, isTomorrow, isPast, startOfDay, isSameDay } from "date-fns";
+import { format, isToday, isTomorrow, isPast, isSameDay } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Check, Plus, Trash2, CalendarClock, Inbox, Sparkles, RotateCcw, AlarmClock } from "lucide-react";
 import { toast } from "sonner";
