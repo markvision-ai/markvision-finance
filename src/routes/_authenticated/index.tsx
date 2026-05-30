@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { HeroBalance } from "@/components/dashboard/HeroBalance";
 import { QuickActions } from "@/components/dashboard/QuickActions";
