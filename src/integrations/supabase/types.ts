@@ -497,8 +497,12 @@ export type Database = {
       }
       telegram_users: {
         Row: {
+          bot_id: number | null
+          bot_token: string | null
+          bot_username: string | null
           created_at: string
           id: string
+          is_active: boolean | null
           link_code: string | null
           link_code_expires_at: string | null
           linked_at: string | null
@@ -507,8 +511,12 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          bot_id?: number | null
+          bot_token?: string | null
+          bot_username?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           link_code?: string | null
           link_code_expires_at?: string | null
           linked_at?: string | null
@@ -517,8 +525,12 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          bot_id?: number | null
+          bot_token?: string | null
+          bot_username?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean | null
           link_code?: string | null
           link_code_expires_at?: string | null
           linked_at?: string | null
@@ -598,6 +610,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
       link_chat_id_by_username: {
         Args: { p_chat_id: number; p_username: string }
         Returns: string
