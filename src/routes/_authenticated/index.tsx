@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Landmark, ChevronLeft, ChevronRight, CalendarIcon, Target, PiggyBank, Calendar as CalIcon, ListChecks } from "lucide-react";
+import { TrendingUp, TrendingDown, Landmark, ChevronLeft, ChevronRight, CalendarIcon, Target, PiggyBank, Calendar as CalIcon, ListChecks, Send, X } from "lucide-react";
 import { startOfMonth, endOfMonth, subMonths, addMonths, format, isSameMonth } from "date-fns";
 import { ru } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { HeroBalance } from "@/components/dashboard/HeroBalance";
 import { QuickActions } from "@/components/dashboard/QuickActions";
@@ -115,6 +116,23 @@ function Dashboard() {
   const isThisMonth = isSameMonth(month, new Date());
   const monthLabel = format(month, "LLLL yyyy", { locale: ru });
 
+  // Telegram connection banner — показываем пока бот не привязан.
+  const tgQ = useQuery({
+    queryKey: ["telegram_users", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("telegram_users")
+        .select("telegram_chat_id, username")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  const [bannerHidden, setBannerHidden] = useState(false);
+  const showTgBanner = !!user && !bannerHidden && !tgQ.data?.telegram_chat_id;
+
   const cashflow = useMemo(
     () => buildCashflow(month, monthExpenses as any, monthIncomes as any),
     [month, monthExpenses, monthIncomes]
@@ -142,6 +160,35 @@ function Dashboard() {
 
   return (
     <div>
+      {showTgBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 flex items-center gap-3 rounded-2xl border border-primary/30 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-3 pr-2 sm:p-4"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
+            <Send size={16} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium">Telegram не подключён</div>
+            <div className="truncate text-xs text-muted-foreground">
+              Подключи бота — добавляй траты и задачи голосом и фото чеков.
+            </div>
+          </div>
+          <Link to={"/settings" as any} hash="telegram">
+            <Button size="sm" className="h-8">Подключить</Button>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setBannerHidden(true)}
+            aria-label="Скрыть"
+            className="ml-1 hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent sm:flex"
+          >
+            <X size={14} />
+          </button>
+        </motion.div>
+      )}
+
       {/* Greeting + month switcher */}
       <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
