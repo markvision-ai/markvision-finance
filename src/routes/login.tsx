@@ -36,6 +36,7 @@ function LoginPage() {
           options: { emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
+        try { localStorage.setItem("mv_pending_onboarding", "1"); } catch {}
         toast.success("Аккаунт создан. Проверь почту, если включено подтверждение.");
       }
     } catch (e: any) {
