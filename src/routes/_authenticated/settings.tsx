@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { CategoryManager } from "@/components/finance/CategoryManager";
 import { BankManager } from "@/components/finance/BankManager";
 import { NavItemsManager } from "@/components/finance/NavItemsManager";
+import { TelegramConnect } from "@/components/onboarding/TelegramConnect";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ChevronRight, Tags, Wallet, Landmark } from "lucide-react";
 
@@ -18,8 +19,6 @@ export const Route = createFileRoute("/_authenticated/settings")({ component: Se
 
 function SettingsPage() {
   const { user } = useAuth();
-  const qc = useQueryClient();
-  const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
@@ -34,35 +33,6 @@ function SettingsPage() {
       if (error) throw error;
     },
     onSuccess: () => toast.success("Имя сохранено"),
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const { data: tg } = useQuery({
-    queryKey: ["telegram_users"],
-    queryFn: async () => {
-      const { data } = await supabase.from("telegram_users").select("*").maybeSingle();
-      return data;
-    },
-  });
-  useEffect(() => { if (tg?.username) setUsername(tg.username); }, [tg]);
-
-  const save = useMutation({
-    mutationFn: async () => {
-      const clean = username.trim().replace(/^@/, "").toLowerCase();
-      if (!clean) throw new Error("Введи свой Telegram username");
-      if (!/^[a-zA-Z0-9_]{3,32}$/.test(clean)) throw new Error("Username должен быть 3–32 символа: буквы, цифры, _");
-      if (tg) {
-        const { error } = await supabase.from("telegram_users").update({ username: clean }).eq("id", tg.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("telegram_users").insert({ user_id: user!.id, username: clean });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["telegram_users"] });
-      toast.success("Telegram username сохранён");
-    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -86,23 +56,13 @@ function SettingsPage() {
             Сохранить
           </Button>
         </section>
-        <section className="rounded-2xl border border-border bg-card/60 p-5">
+        <section id="telegram" className="rounded-2xl border border-border bg-card/60 p-5">
           <h2 className="mb-1 text-sm font-medium text-muted-foreground">Telegram</h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            Введи свой Telegram username (без @). Когда напишешь боту впервые — он сам подтянет твой chat_id и привяжет аккаунт.
+            Подключи бота — после клика откроется чат, нажми <b className="text-foreground">Start</b>,
+            и привязка произойдёт автоматически.
           </p>
-          <div className="flex gap-2">
-            <div className="flex-1 space-y-2">
-              <Label>Telegram username</Label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="ivan_ivanov" />
-              {tg?.telegram_chat_id && (
-                <p className="text-xs text-muted-foreground">
-                  chat_id уже привязан: <code className="rounded bg-muted px-1.5 py-0.5">{String(tg.telegram_chat_id)}</code>
-                </p>
-              )}
-            </div>
-          </div>
-          <Button className="mt-3" onClick={() => save.mutate()} disabled={save.isPending}>Сохранить</Button>
+          <TelegramConnect compact />
         </section>
         <section className="rounded-2xl border border-border bg-card/60 p-5">
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">Справочники</h2>

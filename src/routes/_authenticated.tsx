@@ -23,6 +23,21 @@ function AuthGate() {
     }
   }, [loading, user, navigate]);
 
+  // First-time onboarding: после успешного signUp ставим флаг в localStorage.
+  // Когда сессия появилась — отправляем на /welcome (один раз).
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const pending = localStorage.getItem("mv_pending_onboarding");
+      if (pending === "1" && typeof window !== "undefined") {
+        const path = window.location.pathname;
+        if (path === "/" || path === "/login") {
+          navigate({ to: "/welcome" as any, replace: true });
+        }
+      }
+    } catch {}
+  }, [user, navigate]);
+
   // Realtime sync: when bot (or another device) inserts/updates expenses,
   // incomes, tasks, debts, goals — invalidate the relevant caches so the UI
   // reflects new data instantly.

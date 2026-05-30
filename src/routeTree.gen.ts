@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthenticatedWelcomeRouteImport } from './routes/_authenticated/welcome'
 import { Route as AuthenticatedTasksRouteImport } from './routes/_authenticated/tasks'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedRatingRouteImport } from './routes/_authenticated/rating'
@@ -47,6 +48,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedWelcomeRoute = AuthenticatedWelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedTasksRoute = AuthenticatedTasksRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/rating': typeof AuthenticatedRatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/welcome': typeof AuthenticatedWelcomeRoute
   '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
   '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
   '/api/public/bot/create-goal': typeof ApiPublicBotCreateGoalRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/rating': typeof AuthenticatedRatingRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/tasks': typeof AuthenticatedTasksRoute
+  '/welcome': typeof AuthenticatedWelcomeRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
   '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
@@ -229,6 +237,7 @@ export interface FileRoutesById {
   '/_authenticated/rating': typeof AuthenticatedRatingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/tasks': typeof AuthenticatedTasksRoute
+  '/_authenticated/welcome': typeof AuthenticatedWelcomeRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/bot/close-task': typeof ApiPublicBotCloseTaskRoute
   '/api/public/bot/create-debt': typeof ApiPublicBotCreateDebtRoute
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/rating'
     | '/settings'
     | '/tasks'
+    | '/welcome'
     | '/api/public/bot/close-task'
     | '/api/public/bot/create-debt'
     | '/api/public/bot/create-goal'
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/rating'
     | '/settings'
     | '/tasks'
+    | '/welcome'
     | '/'
     | '/api/public/bot/close-task'
     | '/api/public/bot/create-debt'
@@ -310,6 +321,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rating'
     | '/_authenticated/settings'
     | '/_authenticated/tasks'
+    | '/_authenticated/welcome'
     | '/_authenticated/'
     | '/api/public/bot/close-task'
     | '/api/public/bot/create-debt'
@@ -367,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/welcome': {
+      id: '/_authenticated/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof AuthenticatedWelcomeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/tasks': {
@@ -535,6 +554,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedRatingRoute: typeof AuthenticatedRatingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTasksRoute: typeof AuthenticatedTasksRoute
+  AuthenticatedWelcomeRoute: typeof AuthenticatedWelcomeRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -547,6 +567,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedRatingRoute: AuthenticatedRatingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTasksRoute: AuthenticatedTasksRoute,
+  AuthenticatedWelcomeRoute: AuthenticatedWelcomeRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
