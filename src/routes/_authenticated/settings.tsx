@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,6 @@ export const Route = createFileRoute("/_authenticated/settings")({ component: Se
 
 function SettingsPage() {
   const { user } = useAuth();
-  const qc = useQueryClient();
   const [displayName, setDisplayName] = useState("");
 
   useEffect(() => {
