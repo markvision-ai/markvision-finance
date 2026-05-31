@@ -33,7 +33,7 @@ function LoginPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: `${window.location.origin}/welcome` },
         });
         if (error) throw error;
         try { localStorage.setItem("mv_pending_onboarding", "1"); } catch {}

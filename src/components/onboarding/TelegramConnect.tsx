@@ -43,15 +43,41 @@ export function TelegramConnect({ redirectTo, compact, onConnected }: Props) {
 
   const isConnected = !!tg?.telegram_chat_id;
 
-  // Cleanup realtime subscription on unmount
+  // Always-on realtime subscription on telegram_users for current user
   useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel(`tg-link-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "telegram_users",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          if (payload.new?.telegram_chat_id) {
+            setWaiting(false);
+            qc.invalidateQueries({ queryKey: ["telegram_users"] });
+            toast.success("✅ Telegram подключён!");
+            onConnected?.();
+            if (typeof window !== "undefined" && window.location.pathname === "/welcome") {
+              try { localStorage.removeItem("mv_pending_onboarding"); } catch {}
+              navigate({ to: "/" as any, replace: true });
+            } else if (redirectTo) {
+              navigate({ to: redirectTo as any, replace: true });
+            }
+          }
+        },
+      )
+      .subscribe();
+    channelRef.current = channel;
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      supabase.removeChannel(channel);
+      channelRef.current = null;
     };
-  }, []);
+  }, [user?.id, qc, navigate, redirectTo, onConnected]);
 
   const tgLink = linkCode
     ? `https://t.me/${BOT_USERNAME}?start=${linkCode}`
@@ -59,58 +85,29 @@ export function TelegramConnect({ redirectTo, compact, onConnected }: Props) {
 
   async function startConnect() {
     if (!user) return;
+    // Open popup SYNCHRONOUSLY to preserve user-gesture and avoid popup blockers
+    const win = window.open("about:blank", "_blank");
     setBusy(true);
     try {
-      // 1) get_or_create_link_code — генерирует короткий код и UPSERT'ит
-      //    его в telegram_users (RLS: auth.uid() = user_id).
       const { data: code, error } = await supabase.rpc("get_or_create_link_code");
-      if (error) throw error;
+      if (error || !code) {
+        win?.close();
+        throw error ?? new Error("Не удалось получить код подключения");
+      }
       const finalCode = String(code).trim();
       setLinkCode(finalCode);
+      setWaiting(true);
 
-      // 2) Открываем бота сразу — пока в фокусе клик пользователя,
-      //    чтобы браузер не заблокировал window.open.
-      const opened = window.open(
-        `https://t.me/${BOT_USERNAME}?start=${finalCode}`,
-        "_blank",
-        "noopener,noreferrer",
-      );
-      if (!opened) {
+      const url = `https://t.me/${BOT_USERNAME}?start=${finalCode}`;
+      if (win && !win.closed) {
+        win.location.href = url;
+      } else {
         toast.message("Открой Telegram вручную", {
-          description: "Браузер заблокировал всплывающее окно. Скопируй ссылку ниже.",
+          description: "Браузер заблокировал всплывающее окно. Используй ссылку ниже.",
         });
       }
-
-      // 3) Подписываемся на обновление строки текущего пользователя.
-      setWaiting(true);
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
-      channelRef.current = supabase
-        .channel(`tg-link-${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "telegram_users",
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            const row = payload.new;
-            if (row?.telegram_chat_id) {
-              setWaiting(false);
-              qc.invalidateQueries({ queryKey: ["telegram_users"] });
-              toast.success("✅ Telegram подключён!");
-              onConnected?.();
-              if (channelRef.current) {
-                supabase.removeChannel(channelRef.current);
-                channelRef.current = null;
-              }
-              if (redirectTo) navigate({ to: redirectTo as any, replace: true });
-            }
-          },
-        )
-        .subscribe();
     } catch (e: any) {
+      win?.close();
       toast.error(e.message ?? "Не удалось создать код привязки");
     } finally {
       setBusy(false);
@@ -164,6 +161,15 @@ export function TelegramConnect({ redirectTo, compact, onConnected }: Props) {
         {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
         Подключить Telegram
       </Button>
+
+      <a
+        href={tgLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block text-center text-xs text-primary hover:underline"
+      >
+        Открыть бота вручную ↗
+      </a>
 
       {waiting && linkCode && (
         <div className="rounded-xl border border-border bg-muted/40 p-3">
