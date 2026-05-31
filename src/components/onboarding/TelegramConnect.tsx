@@ -162,6 +162,15 @@ export function TelegramConnect({ redirectTo, compact, onConnected }: Props) {
         Подключить Telegram
       </Button>
 
+      <a
+        href={tgLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block text-center text-xs text-primary hover:underline"
+      >
+        Открыть бота вручную ↗
+      </a>
+
       {waiting && linkCode && (
         <div className="rounded-xl border border-border bg-muted/40 p-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
