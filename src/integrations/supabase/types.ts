@@ -499,7 +499,6 @@ export type Database = {
         Row: {
           birthday: string | null
           bot_id: number | null
-          bot_token: string | null
           bot_username: string | null
           created_at: string
           id: string
@@ -515,7 +514,6 @@ export type Database = {
         Insert: {
           birthday?: string | null
           bot_id?: number | null
-          bot_token?: string | null
           bot_username?: string | null
           created_at?: string
           id?: string
@@ -531,7 +529,6 @@ export type Database = {
         Update: {
           birthday?: string | null
           bot_id?: number | null
-          bot_token?: string | null
           bot_username?: string | null
           created_at?: string
           id?: string
