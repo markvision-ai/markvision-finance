@@ -497,6 +497,7 @@ export type Database = {
       }
       telegram_users: {
         Row: {
+          birthday: string | null
           bot_id: number | null
           bot_token: string | null
           bot_username: string | null
@@ -509,8 +510,10 @@ export type Database = {
           telegram_chat_id: number | null
           user_id: string
           username: string | null
+          zodiac: string | null
         }
         Insert: {
+          birthday?: string | null
           bot_id?: number | null
           bot_token?: string | null
           bot_username?: string | null
@@ -523,8 +526,10 @@ export type Database = {
           telegram_chat_id?: number | null
           user_id: string
           username?: string | null
+          zodiac?: string | null
         }
         Update: {
+          birthday?: string | null
           bot_id?: number | null
           bot_token?: string | null
           bot_username?: string | null
@@ -537,6 +542,7 @@ export type Database = {
           telegram_chat_id?: number | null
           user_id?: string
           username?: string | null
+          zodiac?: string | null
         }
         Relationships: []
       }
@@ -621,6 +627,7 @@ export type Database = {
       }
       resolve_user_by_chat: { Args: { p_chat_id: number }; Returns: Json }
       unlink_telegram: { Args: never; Returns: string }
+      zodiac_from_date: { Args: { d: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
